@@ -4,8 +4,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/aiyengar2/hull/pkg/objectset"
 	"github.com/rancher/helm-locker/pkg/objectset/parser"
+	"github.com/rancher/wrangler/pkg/objectset"
 	helmChart "helm.sh/helm/v3/pkg/chart"
 )
 
@@ -36,10 +36,10 @@ type TemplateManifest struct {
 	ManifestConfiguration *ManifestConfiguration
 
 	lock sync.Mutex
-	os   objectset.ObjectSet
+	os   *objectset.ObjectSet
 }
 
-func (m *TemplateManifest) ToObjectSet() (objectset.ObjectSet, error) {
+func (m *TemplateManifest) ToObjectSet() (*objectset.ObjectSet, error) {
 	err := m.load()
 	return m.os, err
 }
@@ -47,16 +47,13 @@ func (m *TemplateManifest) ToObjectSet() (objectset.ObjectSet, error) {
 func (m *TemplateManifest) load() error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	if m.os.ObjectSet != nil {
+	if m.os != nil {
 		return nil
 	}
-	internalOS, err := parser.Parse(m.raw)
+	var err error
+	m.os, err = parser.Parse(m.raw)
 	if err != nil {
 		return err
-	}
-	m.os = objectset.ObjectSet{
-		Source:    m.TemplateFile,
-		ObjectSet: internalOS,
 	}
 	return nil
 }
