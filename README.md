@@ -11,6 +11,7 @@ Similar to [`helm/chart-testing`](https://github.com/helm/chart-testing), it is 
 * [Go](https://go.dev)
 * [Trivy](https://github.com/aquasecurity/trivy)
 * [Yamllint](https://github.com/adrienverge/yamllint)
+* [Conftest](https://www.conftest.dev/)
 
 ## Getting Started
 
