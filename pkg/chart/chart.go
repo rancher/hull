@@ -92,6 +92,7 @@ func (c *Chart) GetManifest(t *testing.T, conf *ManifestConfiguration) *Manifest
 	manifest := Manifest{
 		ChartMetadata: c.Metadata,
 		Configuration: conf,
+		Path:          c.Path,
 
 		templateManifests: make(map[string]*TemplateManifest, 0),
 	}

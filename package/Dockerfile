@@ -12,14 +12,14 @@ ARG yamllint_version=1.26.3
 LABEL yamllint_version=$yamllint_version
 RUN pip install "yamllint==$yamllint_version"
 
-# Install Helm
-ARG helm_version=v3.9.2
-LABEL helm_version=${helm_version}
-RUN curl -LO "https://get.helm.sh/helm-${helm_version}-linux-amd64.tar.gz" \
-    && mkdir -p "/usr/local/helm-${helm_version}" \
-    && tar -xzf "helm-${helm_version}-linux-amd64.tar.gz" -C "/usr/local/helm-${helm_version}" \
-    && ln -s "/usr/local/helm-${helm_version}/linux-amd64/helm" /usr/local/bin/helm \
-    && rm -f "helm-${helm_version}-linux-amd64.tar.gz"
+# # Install Helm
+# ARG helm_version=v3.9.2
+# LABEL helm_version=${helm_version}
+# RUN curl -LO "https://get.helm.sh/helm-${helm_version}-linux-amd64.tar.gz" \
+#     && mkdir -p "/usr/local/helm-${helm_version}" \
+#     && tar -xzf "helm-${helm_version}-linux-amd64.tar.gz" -C "/usr/local/helm-${helm_version}" \
+#     && ln -s "/usr/local/helm-${helm_version}/linux-amd64/helm" /usr/local/bin/helm \
+#     && rm -f "helm-${helm_version}-linux-amd64.tar.gz"
 
 ###
 

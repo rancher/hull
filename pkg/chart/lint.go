@@ -91,7 +91,7 @@ func (m *TemplateManifest) Lint(t *testing.T) error {
 	}
 
 	cmd := exec.Command("yamllint", "-")
-	cmd.Stdin = strings.NewReader(m.raw)
+	cmd.Stdin = strings.NewReader(m.Raw())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Errorf("[%s@%s] %s failed lint checks against %s", m.ChartMetadata.Name, m.ChartMetadata.Version, m.TemplateFile, m.ManifestConfiguration)
@@ -101,7 +101,7 @@ func (m *TemplateManifest) Lint(t *testing.T) error {
 			m.ChartMetadata.Version,
 			strings.TrimPrefix(m.TemplateFile, m.ChartMetadata.Name+string(os.PathSeparator)),
 			m.ManifestConfiguration.String(),
-			m.raw,
+			m.Raw(),
 		)
 		w = io.MultiWriter(w, os.Stderr)
 		if _, err := w.Write(out); err != nil {
