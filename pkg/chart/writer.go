@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"sync"
+	"testing"
 
 	"github.com/aiyengar2/hull/pkg/utils"
-	"github.com/rancher/charts-build-scripts/pkg/filesystem"
+	"github.com/google/uuid"
 	helmChart "helm.sh/helm/v3/pkg/chart"
 )
 
@@ -18,7 +19,11 @@ const (
 )
 
 var (
-	deleteOutputDirOnce sync.Once
+	chartPathWriters    map[string]*chartPathWriter
+	chartPathWriterLock sync.Mutex
+
+	// ensure multiple runs are in new directories
+	chartPathNamespace = fmt.Sprintf("test-run-%s", uuid.New())
 )
 
 type chartPathWriter struct {
@@ -31,14 +36,27 @@ type chartPathWriter struct {
 	Raw          string
 }
 
-func NewChartPathWriter(chart, version, path, command, raw string) io.Writer {
-	return &chartPathWriter{
-		ChartName:    chart,
-		ChartVersion: version,
-		ChartPath:    path,
-		Command:      command,
-		Raw:          raw,
+func NewChartPathWriter(t *testing.T, chart, version, path, command, raw string) io.Writer {
+	chartPathWriterLock.Lock()
+	defer chartPathWriterLock.Unlock()
+
+	if chartPathWriters == nil {
+		chartPathWriters = make(map[string]*chartPathWriter)
 	}
+
+	key := fmt.Sprintf("%s-%s-%s", chart, version, path)
+	w, ok := chartPathWriters[key]
+	if !ok {
+		chartPathWriters[key] = &chartPathWriter{
+			ChartName:    chart,
+			ChartVersion: version,
+			ChartPath:    path,
+			Command:      command,
+			Raw:          raw,
+		}
+		w = chartPathWriters[key]
+	}
+	return w
 }
 
 func (w *chartPathWriter) Write(out []byte) (n int, err error) {
@@ -47,9 +65,7 @@ func (w *chartPathWriter) Write(out []byte) (n int, err error) {
 	if len(outputDir) == 0 {
 		return len(out), nil
 	}
-	deleteOutputDirOnce.Do(func() {
-		filesystem.RemoveAll(repoFs, outputDir)
-	})
+	outputDir = filepath.Join(outputDir, chartPathNamespace)
 
 	outputFile := filepath.Join(outputDir, w.ChartMetadata.Name, w.ChartMetadata.Version, w.ChartPath)
 	f, err := repoFs.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModePerm)

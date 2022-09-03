@@ -1,9 +1,9 @@
 package chart
 
 import (
-	"sort"
 	"sync"
 
+	"github.com/rancher/charts-build-scripts/pkg/filesystem"
 	"github.com/rancher/helm-locker/pkg/objectset/parser"
 	"github.com/rancher/wrangler/pkg/objectset"
 	"gopkg.in/yaml.v2"
@@ -11,16 +11,17 @@ import (
 )
 
 type Manifest struct {
-	ChartMetadata *helmChart.Metadata
+	Chart *helmChart.Chart
 
 	Path          string
 	Configuration *ManifestConfiguration
+	Values        map[string]interface{}
 
 	templateManifests map[string]*TemplateManifest
-
-	lock sync.Mutex
-	raw  string
-	os   *objectset.ObjectSet
+	lock              sync.Mutex
+	raw               string
+	os                *objectset.ObjectSet
+	osMap             map[string]*objectset.ObjectSet
 }
 
 func (m *Manifest) Raw() string {
@@ -30,7 +31,19 @@ func (m *Manifest) Raw() string {
 
 func (m *Manifest) ToObjectSet() (*objectset.ObjectSet, error) {
 	err := m.load()
-	return m.os, err
+	// deep copy
+	os := objectset.NewObjectSet(m.os.All()...)
+	return os, err
+}
+
+func (m *Manifest) ToObjectSetMap() (map[string]*objectset.ObjectSet, error) {
+	err := m.load()
+	// deep copy
+	osMap := make(map[string]*objectset.ObjectSet, len(m.osMap))
+	for osPath, os := range m.osMap {
+		osMap[osPath] = objectset.NewObjectSet(os.All()...)
+	}
+	return osMap, err
 }
 
 func (m *Manifest) load() error {
@@ -41,15 +54,22 @@ func (m *Manifest) load() error {
 	}
 
 	m.os = objectset.NewObjectSet()
-	m.raw = ""
-	for _, tm := range m.templateManifests {
+	m.osMap = make(map[string]*objectset.ObjectSet)
+	for tmPath, tm := range m.templateManifests {
 		tmOs, err := tm.ToObjectSet()
 		if err != nil {
 			return err
 		}
 		m.os.Add(tmOs.All()...)
+		tmRelativePath, err := filesystem.MovePath(tmPath, m.Path, "")
+		if err != nil {
+			return err
+		}
+		m.osMap[tmRelativePath] = tmOs
 	}
+	m.osMap[""] = m.os
 
+	m.raw = ""
 	for _, o := range m.os.All() {
 		raw, err := yaml.Marshal(o)
 		if err != nil {
@@ -64,26 +84,16 @@ func (m *Manifest) load() error {
 	return nil
 }
 
-func (m *Manifest) sorted() []*TemplateManifest {
-	var tms []*TemplateManifest
-	for _, tm := range m.templateManifests {
-		tms = append(tms, tm)
-	}
-	sort.SliceStable(tms, func(i, j int) bool {
-		return tms[i].TemplateFile > tms[j].TemplateFile
-	})
-	return tms
-}
-
 type TemplateManifest struct {
 	ChartMetadata *helmChart.Metadata
 	TemplateFile  string
-	raw           string
+	Values        map[string]interface{}
 
 	ManifestConfiguration *ManifestConfiguration
 
 	lock sync.Mutex
 	os   *objectset.ObjectSet
+	raw  string
 }
 
 func (m *TemplateManifest) Raw() string {
@@ -92,7 +102,9 @@ func (m *TemplateManifest) Raw() string {
 
 func (m *TemplateManifest) ToObjectSet() (*objectset.ObjectSet, error) {
 	err := m.load()
-	return m.os, err
+	// deep copy
+	os := objectset.NewObjectSet(m.os.All()...)
+	return os, err
 }
 
 func (m *TemplateManifest) load() error {

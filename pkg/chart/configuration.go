@@ -69,7 +69,7 @@ func toCapabilitiesArgs(capOpts *helmChartUtil.Capabilities) string {
 	if capOpts == nil || capOpts == helmChartUtil.DefaultCapabilities {
 		return ""
 	}
-	return fmt.Sprintf("--kube-version ", capOpts.KubeVersion)
+	return fmt.Sprintf("--kube-version %s", capOpts.KubeVersion)
 }
 
 func toValuesArgs(valOpts *helmValues.Options) string {

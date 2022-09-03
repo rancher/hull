@@ -78,21 +78,21 @@ func (c *Chart) GetManifest(t *testing.T, conf *ManifestConfiguration) *Manifest
 		t.Error(err)
 		return nil
 	}
-
 	conf, err := conf.setDefaults(c.Metadata.Name)
 	if err != nil {
 		t.Error(err)
 		return nil
 	}
-	renderedChart, err := renderChart(c.Chart, conf)
+	renderedChart, values, err := renderChart(c.Chart, conf)
 	if err != nil {
 		t.Error(fmt.Errorf("[%s@%s] %s", c.Metadata.Name, c.Metadata.Version, err))
 		return nil
 	}
 	manifest := Manifest{
-		ChartMetadata: c.Metadata,
+		Chart:         c.Chart,
 		Configuration: conf,
 		Path:          c.Path,
+		Values:        values,
 
 		templateManifests: make(map[string]*TemplateManifest, 0),
 	}
@@ -109,21 +109,26 @@ func (c *Chart) GetManifest(t *testing.T, conf *ManifestConfiguration) *Manifest
 			ChartMetadata:         c.Metadata,
 			TemplateFile:          templateFile,
 			ManifestConfiguration: conf,
+			Values:                values,
 			raw:                   fmt.Sprintf("---\n%s", manifestString),
 		}
 	}
 	return &manifest
 }
 
-func renderChart(chart *helmChart.Chart, conf *ManifestConfiguration) (map[string]string, error) {
+func renderChart(chart *helmChart.Chart, conf *ManifestConfiguration) (map[string]string, map[string]interface{}, error) {
 	values, err := conf.ValuesOptions.MergeValues(nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	renderValues, err := helmChartUtil.ToRenderValues(chart, values, conf.Release, conf.Capabilities)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	e := helmEngine.Engine{LintMode: true}
-	return e.Render(chart, renderValues)
+	templateYamls, err := e.Render(chart, renderValues)
+	if err != nil {
+		return nil, nil, err
+	}
+	return templateYamls, renderValues, nil
 }

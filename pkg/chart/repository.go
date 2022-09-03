@@ -1,12 +1,24 @@
 package chart
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/Masterminds/semver/v3"
 )
 
 type ChartRepository map[string]*Chart
+
+func (c ChartRepository) Exclude(chart, version string) {
+	if c == nil {
+		return
+	}
+	for chartPath, ch := range c {
+		if ch.Metadata.Name == chart && ch.Metadata.Version == version {
+			delete(c, chartPath)
+		}
+	}
+}
 
 func (c ChartRepository) removeSubcharts() {
 	if c == nil {
@@ -39,9 +51,10 @@ func (c ChartRepository) onlyLatest() error {
 		if err != nil {
 			return err
 		}
-		currVer, ok := latestVersions[chart.Metadata.Name]
+		key := fmt.Sprintf("%s/%s.%s.x", chart.Metadata.Name, fmt.Sprint(v.Major()), fmt.Sprint(v.Minor()))
+		currVer, ok := latestVersions[key]
 		if !ok || v.GreaterThan(currVer) {
-			latestVersions[chart.Metadata.Name] = v
+			latestVersions[key] = v
 		}
 	}
 	for path, chart := range c {
@@ -49,7 +62,8 @@ func (c ChartRepository) onlyLatest() error {
 		if err != nil {
 			return err
 		}
-		if v.LessThan(latestVersions[chart.Metadata.Name]) {
+		key := fmt.Sprintf("%s/%s.%s.x", chart.Metadata.Name, fmt.Sprint(v.Major()), fmt.Sprint(v.Minor()))
+		if v.LessThan(latestVersions[key]) {
 			delete(c, path)
 		}
 	}

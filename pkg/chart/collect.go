@@ -55,7 +55,7 @@ func Collect(t *testing.T, chart, version string) ChartRepository {
 }
 
 func CollectLatest(t *testing.T, chart string) ChartRepository {
-	c := CollectAll(t)
+	c := Collect(t, chart, "")
 	if c == nil {
 		return c
 	}
