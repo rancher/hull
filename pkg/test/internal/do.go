@@ -1,146 +1,69 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
-	"runtime"
+	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-const (
-	invalidFuncSignatureWarning = "Function signature must match pattern func(t *testing.T, objStruct MyStruct)"
-	invalidStructTypeWarning    = "Each field of a provided struct must correspond to an object or slice of objects that implement v1.Object. " +
-		"It is also expected that no two fields the struct correspond to the same underlying type."
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var (
-	objectInterface = reflect.TypeOf(new(v1.Object)).Elem()
+	unstructuredType = reflect.TypeOf(&unstructured.Unstructured{})
+	objectInterface  = reflect.TypeOf(new(runtime.Object)).Elem()
 )
 
-type DoFunc func(testing *testing.T, objs []v1.Object)
+type DoFunc func(t *testing.T, objs []runtime.Object)
 
-func WrapFunc(fromFunc interface{}) DoFunc {
-	caller := reflect.ValueOf(fromFunc)
-	funcName := runtime.FuncForPC(caller.Pointer()).Name()
+type ParseOptions struct {
+	Scheme *runtime.Scheme
+	Strict bool
+}
+
+func (o *ParseOptions) setDefaults() *ParseOptions {
+	if o == nil {
+		o = &ParseOptions{}
+	}
+	if o.Scheme == nil {
+		o.Scheme = runtime.NewScheme()
+	}
+	return o
+}
+
+func WrapFunc(fromFunc interface{}, opts *ParseOptions) DoFunc {
 	funcType := reflect.TypeOf(fromFunc)
-
 	err := validateFunctionSignature(funcType)
 	if err != nil {
-		logrus.Errorf(invalidFuncSignatureWarning)
-		logrus.WithField("doFunc", funcName).Fatalf("could not wrap doFunc: %s", err)
+		return getBadSignatureFunc(fromFunc, err)
 	}
-
-	inputType := funcType.In(1)
-	supportedTypes, err := parseInputStruct(inputType)
-	if err != nil {
-		logrus.Errorf(invalidStructTypeWarning)
-		logrus.WithField("doFunc", funcName).Fatalf("could not wrap doFunc: %s", err)
-	}
-
-	return func(t *testing.T, objs []v1.Object) {
-		in := reflect.New(inputType)
-
-		singletonFieldToObjs := map[reflect.Value][]v1.Object{}
-		for _, obj := range objs {
-			fieldName, err := supportedTypes.getField(obj)
-			if err != nil {
-				logrus.WithFields(logrus.Fields{
-					"resource":       fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName()),
-					"supportedTypes": supportedTypes,
-				}).Fatalf("Could not unmarshall %s into %s: %s", reflect.TypeOf(obj), inputType, err)
-			}
-			field := in.Elem().FieldByName(fieldName)
-			if field.Kind() != reflect.Slice {
-				// Singleton fields will be added in a separate loop to print violaters
-				singletonFieldToObjs[field] = append(singletonFieldToObjs[field], obj)
-				continue
-			}
-			objValue := reflect.ValueOf(obj)
-			if field.Type().Elem().Kind() != reflect.Interface {
-				objValue = objValue.Elem()
-			}
-			field.Set(reflect.Append(field, objValue))
+	return func(t *testing.T, objs []runtime.Object) {
+		inputType := funcType.In(1)
+		objStruct := reflect.New(inputType).Interface()
+		if err := parseObjectsIntoStruct(objs, objStruct, opts); err != nil {
+			t.Error(err)
+			return
 		}
-
-		// Ensure that you only find one resource if the struct is expecting a single resource
-		foundMultipleSingletons := false
-		for field, objs := range singletonFieldToObjs {
-			if len(objs) > 0 {
-				resources := make([]string, len(objs))
-				for i, obj := range objs {
-					resources[i] = fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName())
-				}
-				logrus.
-					WithField("resources", resources).
-					Errorf("Expected 1 resource of type %s, found %d", field.Type(), len(objs))
-				foundMultipleSingletons = true
-				continue
-			}
-			objValue := reflect.ValueOf(objs[0])
-			if field.Type().Elem().Kind() != reflect.Interface {
-				objValue = objValue.Elem()
-			}
-			field.Set(objValue)
+		args := []reflect.Value{
+			reflect.ValueOf(t),
+			reflect.ValueOf(objStruct).Elem(),
 		}
-
-		if foundMultipleSingletons {
-			logrus.
-				WithField("doFunc", funcName).
-				Fatalf("Failed to unmarshall objects into %s", inputType)
-		}
-
-		// Call the function with the provided *testing.T
-		args := []reflect.Value{reflect.ValueOf(t), in.Elem()}
-		caller.Call(args)
+		reflect.ValueOf(fromFunc).Call(args)
 	}
 }
 
-func convertObjectToObjectStruct(objs []v1.Object, objectStructType reflect.Type, supportedTypes fieldTypeTracker) (reflect.Value, error) {
-	if objectStructType == nil {
-		return reflect.Value{}, nil
+func getBadSignatureFunc(fromFunc interface{}, err error) DoFunc {
+	return func(t *testing.T, objs []runtime.Object) {
+		t.Errorf("invalid function signature for %s: function signature must match pattern "+
+			"func(t *testing.T, objStruct MyStruct), where each field of a provided "+
+			"struct must correspond to a slice of pointers to structs that implement "+
+			"v1.Object and runtime.Object: %s",
+			reflect.TypeOf(fromFunc),
+			err,
+		)
 	}
-	objectStruct := reflect.New(objectStructType)
-	if objs == nil {
-		return objectStruct.Elem(), nil
-	}
-	singletonFieldToObjs := map[reflect.Value][]v1.Object{}
-	for _, obj := range objs {
-		fieldName, err := supportedTypes.getField(obj)
-		if err != nil {
-			return objectStruct.Elem(), fmt.Errorf("could not unmarshall %s (%s/%s) into %s since it was not identified as a supported type %s: %s", reflect.TypeOf(obj), obj.GetNamespace(), obj.GetName(), objectStructType, supportedTypes, err)
-		}
-		field := objectStruct.Elem().FieldByName(fieldName)
-		if field.Kind() != reflect.Slice {
-			// Singleton fields will be added in a separate loop to print violaters
-			singletonFieldToObjs[field] = append(singletonFieldToObjs[field], obj)
-			continue
-		}
-		objValue := reflect.ValueOf(obj)
-		if field.Type().Elem().Kind() != reflect.Interface {
-			objValue = objValue.Elem()
-		}
-		field.Set(reflect.Append(field, objValue))
-	}
-
-	// Ensure that you only find one resource if the struct is expecting a single resource
-	for field, objs := range singletonFieldToObjs {
-		if len(objs) > 1 {
-			resources := make([]string, len(objs))
-			for i, obj := range objs {
-				resources[i] = fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName())
-			}
-			return objectStruct.Elem(), fmt.Errorf("failed to unmarshall objects into %s: expected 1 resource of type %s, found %d: %s", objectStructType, field.Type(), len(objs), resources)
-		}
-		objValue := reflect.ValueOf(objs[0])
-		if field.Type().Kind() != reflect.Interface {
-			objValue = objValue.Elem()
-		}
-		field.Set(objValue)
-	}
-	return objectStruct.Elem(), nil
 }
 
 func validateFunctionSignature(funcType reflect.Type) error {
@@ -169,56 +92,118 @@ func validateFunctionSignature(funcType reflect.Type) error {
 	return nil
 }
 
-func parseInputStruct(inputType reflect.Type) (fieldTypeTracker, error) {
-	// Each field on the input struct should either implement v1.Object or be a slice of objects that implement v1.Object
-	supportedResources := fieldTypeTracker{
-		types:      map[reflect.Type]string{},
-		interfaces: map[reflect.Type]string{},
+func parseObjectsIntoStruct(objs []runtime.Object, objectStruct interface{}, opts *ParseOptions) error {
+	opts = opts.setDefaults()
+	// validate object
+	if objectStruct == nil {
+		return errors.New("cannot parse objects into nil object")
 	}
-	if inputType == nil {
-		return supportedResources, nil
+	objectStructTypePtr := reflect.TypeOf(objectStruct)
+	if objectStructTypePtr.Kind() != reflect.Ptr {
+		return fmt.Errorf("cannot parse objects into non-pointer type of object, found object of type %s", objectStructTypePtr)
 	}
-	for i := 0; i < inputType.NumField(); i++ {
-		field := inputType.Field(i)
+	objectStructType := objectStructTypePtr.Elem()
+	supportedTypes, err := getSupportedTypes(objectStructType)
+	if err != nil {
+		return fmt.Errorf("could not get supported types from object of type %s: %s", objectStructTypePtr, err)
+	}
+
+	if objs == nil {
+		// nothing to parse
+		return nil
+	}
+
+	for _, obj := range objs {
+		// Identify object type from scheme
+		var objType reflect.Type
+		gvk := obj.GetObjectKind().GroupVersionKind()
+		for kind, reflectType := range opts.Scheme.KnownTypes(gvk.GroupVersion()) {
+			if kind == gvk.Kind {
+				objType = reflect.PtrTo(reflectType)
+				newObj := reflect.New(objType.Elem()).Interface()
+				opts.Scheme.Convert(obj, newObj, nil)
+				obj = newObj.(runtime.Object)
+				obj.GetObjectKind().SetGroupVersionKind(gvk)
+				break
+			}
+		}
+		if objType == nil {
+			// fall back to provided type
+			objType = reflect.TypeOf(obj)
+		}
+		fieldPath, exists := supportedTypes.getFieldPath(objType)
+		if !exists {
+			unstructuredFieldPath, exists := supportedTypes.getFieldPath(unstructuredType)
+			if !exists {
+				if !opts.Strict {
+					continue
+				}
+				return fmt.Errorf("could not unmarshall object of type %s into %s since it was not identified as a supported type %s: %s", reflect.TypeOf(obj), objectStructType, supportedTypes, err)
+			}
+			fieldPath = unstructuredFieldPath
+			uObj, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+			obj = &unstructured.Unstructured{
+				Object: uObj,
+			}
+		}
+		fieldNames := strings.Split(fieldPath, ".")
+		fieldVal := reflect.ValueOf(objectStruct).Elem()
+		for _, fieldName := range fieldNames {
+			fieldVal = fieldVal.FieldByName(fieldName)
+		}
+		fieldVal.Set(reflect.Append(fieldVal, reflect.ValueOf(obj)))
+	}
+	return nil
+}
+
+func getSupportedTypes(objStructType reflect.Type) (*fieldTypeTracker, error) {
+	supportedTypes := newFieldTypeTracker()
+	return supportedTypes, addSupportedTypes(supportedTypes, objStructType, "")
+}
+
+func addSupportedTypes(supportedTypes *fieldTypeTracker, objStructType reflect.Type, path string) error {
+	// Each field on the input struct should be a slice of objects that implements runtime.Object
+	if objStructType == nil {
+		return errors.New("input type cannot be nil")
+	}
+	if objStructType.Kind() != reflect.Struct {
+		return fmt.Errorf("input type must be a struct, found %s", objStructType)
+	}
+
+	for i := 0; i < objStructType.NumField(); i++ {
+		field := objStructType.Field(i)
 		fieldType := field.Type
-		// Check if field is a struct or a slice
-		var fieldPointerType reflect.Type
-		var isInterface bool
-		switch fieldType.Kind() {
-		case reflect.Slice:
-			fieldElemType := fieldType.Elem()
-			switch fieldElemType.Kind() {
-			case reflect.Struct:
-				fieldPointerType = reflect.PtrTo(fieldElemType)
-			case reflect.Interface:
-				fieldPointerType = fieldElemType
-				isInterface = true
-			default:
-				return supportedResources, fmt.Errorf("field %s must be a slice of structs", field.Name)
-			}
-		case reflect.Struct:
-			fieldPointerType = reflect.PtrTo(fieldType)
-		case reflect.Interface:
-			fieldPointerType = fieldType
-			isInterface = true
-		default:
-			return supportedResources, fmt.Errorf("field %s must be a struct or slice", field.Name)
+		fieldPath := field.Name
+		if len(path) > 0 {
+			fieldPath = path + "." + fieldPath
 		}
-		if isInterface {
-			err := supportedResources.addInterface(fieldPointerType, field.Name)
-			if err != nil {
-				return supportedResources, err
+		// Check if field is an embedded struct that is a slice of objects that implements runtime.Object
+		if fieldType.Kind() == reflect.Ptr || fieldType.Kind() == reflect.Struct {
+			if fieldType.Kind() == reflect.Ptr {
+				fieldType = fieldType.Elem()
 			}
-		} else {
-			err := supportedResources.addType(fieldPointerType, field.Name)
+			err := addSupportedTypes(supportedTypes, fieldType, fieldPath)
 			if err != nil {
-				return supportedResources, err
+				return fmt.Errorf("cannot parse supported types from pointer type %s at path %s: %s", fieldType, fieldPath, err)
 			}
+			continue
 		}
-		// Field elem must implement v1.Object
-		if !fieldPointerType.Implements(objectInterface) {
-			return supportedResources, fmt.Errorf("field %s contains object(s) of type %s that do not implement %s", field.Name, fieldPointerType, objectInterface)
+		// Check if field is a slice
+		if fieldType.Kind() != reflect.Slice {
+			return fmt.Errorf("field %s must be a slice of structs that implement v1.Object and runtime.Object", field.Name)
+		}
+		fieldElemType := fieldType.Elem()
+		if fieldElemType.Kind() != reflect.Ptr {
+			return fmt.Errorf("field %s must be a slice of pointers to structs", field.Name)
+		}
+		// Each element in the field's type must implement v1.Object and runtime.Object
+		if !fieldElemType.Implements(objectInterface) {
+			return fmt.Errorf("field %s contains object(s) of type %s that do not implement %s", field.Name, fieldElemType, objectInterface)
+		}
+		err := supportedTypes.addType(fieldPath, fieldElemType)
+		if err != nil {
+			return err
 		}
 	}
-	return supportedResources, nil
+	return nil
 }

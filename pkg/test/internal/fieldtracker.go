@@ -3,65 +3,41 @@ package internal
 import (
 	"fmt"
 	"reflect"
-
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type fieldTypeTracker struct {
-	types      map[reflect.Type]string
-	interfaces map[reflect.Type]string
+	typeToField map[reflect.Type]string
+	fieldToType map[string]reflect.Type
 }
 
-func (r *fieldTypeTracker) addType(typeToAdd reflect.Type, fieldName string) error {
-	if currFieldName, exists := r.types[typeToAdd]; exists {
-		return fmt.Errorf("field %s and %s track the same object type %s", currFieldName, fieldName, typeToAdd)
+func newFieldTypeTracker() *fieldTypeTracker {
+	return &fieldTypeTracker{
+		typeToField: make(map[reflect.Type]string),
+		fieldToType: make(map[string]reflect.Type),
 	}
-	r.types[typeToAdd] = fieldName
+}
+
+func (r *fieldTypeTracker) addType(fieldName string, fieldType reflect.Type) error {
+	if currFieldName, exists := r.typeToField[fieldType]; exists && currFieldName != fieldName {
+		return fmt.Errorf("field %s and %s track the same object type %s", currFieldName, fieldName, fieldType)
+	}
+	if currType, exists := r.fieldToType[fieldName]; exists && currType != fieldType {
+		return fmt.Errorf("field %s is already tracking %s, cannot also track %s", fieldName, currType, fieldType)
+	}
+	r.typeToField[fieldType] = fieldName
+	r.fieldToType[fieldName] = fieldType
 	return nil
 }
 
-func (r *fieldTypeTracker) addInterface(interfaceToAdd reflect.Type, fieldName string) error {
-	if currFieldName, exists := r.types[interfaceToAdd]; exists {
-		return fmt.Errorf("field %s and %s track the same object interface %s", currFieldName, fieldName, interfaceToAdd)
-	}
-	r.interfaces[interfaceToAdd] = fieldName
-	return nil
-}
-
-func (r *fieldTypeTracker) getField(obj v1.Object) (fieldName string, err error) {
-	objType := reflect.TypeOf(obj)
-	for supportedType, field := range r.types {
-		if objType == supportedType {
-			return field, nil
+func (r *fieldTypeTracker) getFieldPath(fieldType reflect.Type) (string, bool) {
+	for supportedType, field := range r.typeToField {
+		if fieldType == supportedType {
+			return field, true
 		}
 	}
-	implementsFields := []string{}
-	for supportedInterface, field := range r.interfaces {
-		if objType.Implements(supportedInterface) {
-			implementsFields = append(implementsFields, field)
-		}
-	}
-	if len(implementsFields) == 0 {
-		return "", fmt.Errorf("no existing fields support %s", objType)
-	}
-	if len(implementsFields) > 1 {
-		return "", fmt.Errorf("placement of %s is ambiguous, can be marshalled into multiple interface fields: %s", objType, implementsFields)
-	}
-	return implementsFields[0], nil
+	return "", false
 }
 
 func (r fieldTypeTracker) String() string {
-	supportedTypes := make([]reflect.Type, len(r.types))
-	i := 0
-	for supportedType := range r.types {
-		supportedTypes[i] = supportedType
-		i++
-	}
-	supportedInterfaces := make([]reflect.Type, len(r.interfaces))
-	i = 0
-	for supportedInterface := range r.interfaces {
-		supportedInterfaces[i] = supportedInterface
-		i++
-	}
-	return fmt.Sprintf("{types: %s, interfaces: %s}", supportedTypes, supportedInterfaces)
+	return fmt.Sprintf("{typesToField: %s, fieldToType: %s}", r.typeToField, r.fieldToType)
 }
