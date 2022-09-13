@@ -1,4 +1,4 @@
-package chart
+package writer
 
 import (
 	"fmt"
@@ -9,9 +9,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/aiyengar2/hull/pkg/utils"
+	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/google/uuid"
-	helmChart "helm.sh/helm/v3/pkg/chart"
 )
 
 const (
@@ -27,8 +26,6 @@ var (
 )
 
 type chartPathWriter struct {
-	ChartMetadata helmChart.Metadata
-
 	ChartName    string
 	ChartVersion string
 	ChartPath    string
@@ -60,15 +57,19 @@ func NewChartPathWriter(t *testing.T, chart, version, path, command, raw string)
 }
 
 func (w *chartPathWriter) Write(out []byte) (n int, err error) {
-	repoFs := utils.GetRepoFs()
+	wd, err := os.Getwd()
+	if err != nil {
+		return 0, err
+	}
 	outputDir := os.Getenv(outputDirEnvVar)
 	if len(outputDir) == 0 {
 		return len(out), nil
 	}
-	outputDir = filepath.Join(outputDir, chartPathNamespace)
+	outputDir = filepath.Join(wd, outputDir, chartPathNamespace)
+	outputFs := osfs.New(outputDir)
 
-	outputFile := filepath.Join(outputDir, w.ChartMetadata.Name, w.ChartMetadata.Version, w.ChartPath)
-	f, err := repoFs.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModePerm)
+	outputFile := filepath.Join(w.ChartName, w.ChartVersion, w.ChartPath)
+	f, err := outputFs.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModePerm)
 	if err != nil {
 		return 0, err
 	}

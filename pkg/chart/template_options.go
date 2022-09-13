@@ -8,53 +8,49 @@ import (
 	helmValues "helm.sh/helm/v3/pkg/cli/values"
 )
 
-type ManifestConfiguration struct {
-	Name          string
+type TemplateOptions struct {
 	ValuesOptions *helmValues.Options
 	Release       helmChartUtil.ReleaseOptions
 	Capabilities  *helmChartUtil.Capabilities
 }
 
-func (c *ManifestConfiguration) setDefaults(chart string) (*ManifestConfiguration, error) {
-	if c == nil {
-		c = &ManifestConfiguration{}
+func (o *TemplateOptions) setDefaults(chart string) (*TemplateOptions, error) {
+	if o == nil {
+		o = &TemplateOptions{}
 	}
-	if len(c.Release.Name) == 0 {
-		c.Release.Name = chart
+	if len(o.Release.Name) == 0 {
+		o.Release.Name = chart
 	}
-	if len(c.Release.Namespace) == 0 {
-		c.Release.Namespace = "default"
+	if len(o.Release.Namespace) == 0 {
+		o.Release.Namespace = "default"
 	}
-	if !c.Release.IsInstall && !c.Release.IsUpgrade {
-		c.Release.IsInstall = true
+	if !o.Release.IsInstall && !o.Release.IsUpgrade {
+		o.Release.IsInstall = true
 	}
-	if c.Capabilities == nil {
-		c.Capabilities = helmChartUtil.DefaultCapabilities
+	if o.Capabilities == nil {
+		o.Capabilities = helmChartUtil.DefaultCapabilities
 	}
-	if c.ValuesOptions == nil {
-		c.ValuesOptions = &helmValues.Options{}
+	if o.ValuesOptions == nil {
+		o.ValuesOptions = &helmValues.Options{}
 	}
-	return c, nil
+	return o, nil
 }
 
-func (c ManifestConfiguration) String() string {
-	args := fmt.Sprintf("helm template -n %s", c.Release.Namespace)
-	relArgs := toReleaseArgs(c.Release)
+func (o TemplateOptions) String() string {
+	args := fmt.Sprintf("helm template -n %s", o.Release.Namespace)
+	relArgs := toReleaseArgs(o.Release)
 	if len(relArgs) > 0 {
 		args += " " + relArgs
 	}
-	capArgs := toCapabilitiesArgs(c.Capabilities)
+	capArgs := toCapabilitiesArgs(o.Capabilities)
 	if len(capArgs) > 0 {
 		args += " " + capArgs
 	}
-	valArgs := toValuesArgs(c.ValuesOptions)
+	valArgs := toValuesArgs(o.ValuesOptions)
 	if len(valArgs) > 0 {
 		args += " " + valArgs
 	}
-	args += fmt.Sprintf(" %s <path-to-chart>", c.Release.Name)
-	if len(c.Name) > 0 {
-		args = fmt.Sprintf("%s (%s)", c.Name, args)
-	}
+	args += fmt.Sprintf(" %s <path-to-chart>", o.Release.Name)
 	return args
 }
 

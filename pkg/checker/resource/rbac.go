@@ -1,14 +1,14 @@
 package resource
 
 import (
-	"github.com/aiyengar2/hull/pkg/test"
+	"github.com/aiyengar2/hull/pkg/checker"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 func init() {
-	corev1.AddToScheme(test.Scheme)
-	rbacv1.AddToScheme(test.Scheme)
+	corev1.AddToScheme(checker.Scheme)
+	rbacv1.AddToScheme(checker.Scheme)
 }
 
 type RBAC struct {

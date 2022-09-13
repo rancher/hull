@@ -4,131 +4,90 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"sync"
-	"testing"
 
-	"github.com/aiyengar2/hull/pkg/utils"
-	"github.com/rancher/charts-build-scripts/pkg/filesystem"
+	"github.com/rancher/helm-locker/pkg/objectset/parser"
+	"github.com/rancher/wrangler/pkg/objectset"
 	helmChart "helm.sh/helm/v3/pkg/chart"
 	helmLoader "helm.sh/helm/v3/pkg/chart/loader"
 	helmChartUtil "helm.sh/helm/v3/pkg/chartutil"
-	helmValues "helm.sh/helm/v3/pkg/cli/values"
 	helmEngine "helm.sh/helm/v3/pkg/engine"
 )
 
-type Chart struct {
+type Chart interface {
+	GetPath() string
+	GetHelmChart() *helmChart.Chart
+	RenderTemplate(opts *TemplateOptions) (Template, error)
+}
+
+type chart struct {
 	*helmChart.Chart
 
-	loadLock sync.Mutex
-	Path     string
+	Path string
 }
 
-func (c *Chart) Load() error {
-	c.loadLock.Lock()
-	defer c.loadLock.Unlock()
-
-	if c.Chart != nil {
-		return nil
+func NewChart(path string) (Chart, error) {
+	c := &chart{
+		Path: path,
 	}
-	chart, err := helmLoader.Load(filepath.Join(utils.GetRepoRoot(), c.Path))
+	var err error
+	c.Chart, err = helmLoader.Load(c.Path)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	c.Chart = chart
-	return nil
+
+	return c, nil
 }
 
-func (c *Chart) ManifestConfigurationsFromCI(t *testing.T) []*ManifestConfiguration {
-	valuesFiles := c.ValuesFilesFromCI(t)
-	if valuesFiles == nil {
-		return nil
-	}
-	mcs := make([]*ManifestConfiguration, len(valuesFiles))
-	for i, v := range valuesFiles {
-		withoutSuffix := strings.TrimSuffix(v, "-values.yaml")
-		if v == withoutSuffix {
-			withoutSuffix = "default"
-		}
-		mc := &ManifestConfiguration{
-			Name: withoutSuffix,
-			ValuesOptions: &helmValues.Options{
-				ValueFiles: []string{v},
-			},
-		}
-		mcs[i] = mc
-	}
-	return mcs
+func (c *chart) GetPath() string {
+	return c.Path
 }
 
-func (c *Chart) ValuesFilesFromCI(t *testing.T) []string {
-	repoFs := utils.GetRepoFs()
-	glob := filepath.Join(
-		filesystem.GetAbsPath(repoFs, filepath.Join(c.Path)),
-		"ci", "*-values.yaml")
-	matches, err := filepath.Glob(glob)
-	if err != nil {
-		t.Error(err)
-		return nil
-	}
-	return matches
+func (c *chart) GetHelmChart() *helmChart.Chart {
+	return c.Chart
 }
 
-func (c *Chart) GetManifest(t *testing.T, conf *ManifestConfiguration) *Manifest {
-	if err := c.Load(); err != nil {
-		t.Error(err)
-		return nil
-	}
-	conf, err := conf.setDefaults(c.Metadata.Name)
+func (c *chart) RenderTemplate(opts *TemplateOptions) (Template, error) {
+	opts, err := opts.setDefaults(c.Metadata.Name)
 	if err != nil {
-		t.Error(err)
-		return nil
+		return nil, err
 	}
-	renderedChart, values, err := renderChart(c.Chart, conf)
+	values, err := opts.ValuesOptions.MergeValues(nil)
 	if err != nil {
-		t.Error(fmt.Errorf("[%s@%s] %s", c.Metadata.Name, c.Metadata.Version, err))
-		return nil
+		return nil, err
 	}
-	manifest := Manifest{
-		Chart:         c.Chart,
-		Configuration: conf,
-		Path:          c.Path,
-		Values:        values,
-
-		templateManifests: make(map[string]*TemplateManifest, 0),
-	}
-	for source, manifestString := range renderedChart {
-		if filepath.Ext(source) != ".yaml" {
-			delete(renderedChart, source)
-		}
-		templateFile, err := filesystem.MovePath(source, c.Metadata.Name, c.Path)
-		if err != nil {
-			t.Error(err)
-			return nil
-		}
-		manifest.templateManifests[templateFile] = &TemplateManifest{
-			ChartMetadata:         c.Metadata,
-			TemplateFile:          templateFile,
-			ManifestConfiguration: conf,
-			Values:                values,
-			raw:                   fmt.Sprintf("---\n%s", manifestString),
-		}
-	}
-	return &manifest
-}
-
-func renderChart(chart *helmChart.Chart, conf *ManifestConfiguration) (map[string]string, map[string]interface{}, error) {
-	values, err := conf.ValuesOptions.MergeValues(nil)
+	renderValues, err := helmChartUtil.ToRenderValues(c.Chart, values, opts.Release, opts.Capabilities)
 	if err != nil {
-		return nil, nil, err
-	}
-	renderValues, err := helmChartUtil.ToRenderValues(chart, values, conf.Release, conf.Capabilities)
-	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	e := helmEngine.Engine{LintMode: true}
-	templateYamls, err := e.Render(chart, renderValues)
+	templateYamls, err := e.Render(c.Chart, renderValues)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return templateYamls, renderValues, nil
+	files := make(map[string]string)
+	objectsets := map[string]*objectset.ObjectSet{
+		"": objectset.NewObjectSet(),
+	}
+	for source, manifestString := range templateYamls {
+		if filepath.Ext(source) != ".yaml" {
+			continue
+		}
+		source := strings.SplitN(source, string(filepath.Separator), 2)[1]
+		manifestString := fmt.Sprintf("---\n%s", manifestString)
+		manifestOs, err := parser.Parse(manifestString)
+		if err != nil {
+			return nil, err
+		}
+		files[source] = manifestString
+		objectsets[source] = manifestOs
+		objectsets[""] = objectsets[""].Add(manifestOs.All()...)
+	}
+	t := &template{
+		Options:    opts,
+		Files:      files,
+		ObjectSets: objectsets,
+		Values:     renderValues,
+	}
+	t.Chart = c
+	return t, nil
 }
