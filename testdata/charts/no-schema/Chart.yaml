@@ -1,0 +1,18 @@
+apiVersion: v2
+name: no-schema
+description: Hull Example Chart
+version: 0.0.0
+appVersion: 0.0.0
+annotations:
+  catalog.cattle.io/certified: rancher
+  catalog.cattle.io/display-name: Hull No Schema
+  catalog.cattle.io/kube-version: '>=1.16.0-0'
+  catalog.cattle.io/namespace: cattle-helm-system
+  catalog.cattle.io/permits-os: linux,windows
+  catalog.cattle.io/rancher-version: '>= 2.7.0-0 <=2.7.99-0'
+  catalog.cattle.io/release-name: no-schema
+  catalog.cattle.io/os: linux,windows
+maintainers:
+- email: arvind.iyengar@suse.com
+  name: aiyengar2
+

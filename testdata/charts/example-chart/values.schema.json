@@ -1,9 +1,14 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema",
-    "properties": {
-        "data": {
-            "type": "object",
-            "title": "data"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "data": {
+      "type": "object",
+      "description": "Data to be inserted into a ConfigMap"
     }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "data"
+  ]
 }

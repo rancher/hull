@@ -7,5 +7,7 @@
 /hull
 .vscode/
 .DS_Store
-/output
+output
+cov.out
+coverage.out
 /charts

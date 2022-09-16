@@ -79,11 +79,3 @@ func (c *checker) Check(t *testing.T, opts *Options, objStructFunc interface{}) 
 		})
 	}
 }
-
-// Per test contexts:
-// run on each templatemanifest, not overall (single resource tests)
-// exclude a set of manifests or exclude those that don't belong in a certain set (windows, linux)
-
-type Options struct {
-	PerTemplateManifest bool
-}

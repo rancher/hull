@@ -5,12 +5,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/go-git/go-billy/v5/osfs"
-	"github.com/google/uuid"
 )
 
 const (
@@ -18,14 +18,14 @@ const (
 )
 
 var (
-	chartPathWriters    map[string]*chartPathWriter
 	chartPathWriterLock sync.Mutex
 
-	// ensure multiple runs are in new directories
-	chartPathNamespace = fmt.Sprintf("test-run-%s", uuid.New())
+	// ensure multiple runs are in new files
+	outputFile = fmt.Sprintf("test-%d.md", time.Now().Unix())
 )
 
 type chartPathWriter struct {
+	Name         string
 	ChartName    string
 	ChartVersion string
 	ChartPath    string
@@ -34,29 +34,23 @@ type chartPathWriter struct {
 }
 
 func NewChartPathWriter(t *testing.T, chart, version, path, command, raw string) io.Writer {
-	chartPathWriterLock.Lock()
-	defer chartPathWriterLock.Unlock()
-
-	if chartPathWriters == nil {
-		chartPathWriters = make(map[string]*chartPathWriter)
+	name := t.Name()
+	name = strings.ReplaceAll(name, "/", " | ")
+	name = strings.ReplaceAll(name, "_", " ")
+	return &chartPathWriter{
+		Name:         name,
+		ChartName:    chart,
+		ChartVersion: version,
+		ChartPath:    path,
+		Command:      command,
+		Raw:          raw,
 	}
-
-	key := fmt.Sprintf("%s-%s-%s", chart, version, path)
-	w, ok := chartPathWriters[key]
-	if !ok {
-		chartPathWriters[key] = &chartPathWriter{
-			ChartName:    chart,
-			ChartVersion: version,
-			ChartPath:    path,
-			Command:      command,
-			Raw:          raw,
-		}
-		w = chartPathWriters[key]
-	}
-	return w
 }
 
 func (w *chartPathWriter) Write(out []byte) (n int, err error) {
+	chartPathWriterLock.Lock()
+	defer chartPathWriterLock.Unlock()
+
 	wd, err := os.Getwd()
 	if err != nil {
 		return 0, err
@@ -65,32 +59,67 @@ func (w *chartPathWriter) Write(out []byte) (n int, err error) {
 	if len(outputDir) == 0 {
 		return len(out), nil
 	}
-	outputDir = filepath.Join(wd, outputDir, chartPathNamespace)
+	outputDir = filepath.Join(wd, outputDir)
 	outputFs := osfs.New(outputDir)
 
-	outputFile := filepath.Join(w.ChartName, w.ChartVersion, w.ChartPath)
 	f, err := outputFs.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModePerm)
 	if err != nil {
 		return 0, err
 	}
 	defer f.Close()
 
-	rawString := fmt.Sprintf("%s\n", w.Raw)
-	_, err = f.Write([]byte(rawString))
+	var markdownType string
+	switch filepath.Ext(w.ChartPath) {
+	case ".yaml":
+		markdownType = "yaml"
+	case ".json":
+		markdownType = "json"
+	}
+
+	_, err = f.Write([]byte(fmt.Sprintf("## %s\n\n", w.Name)))
+
+	if len(w.Raw) > 0 {
+		_, err := f.Write([]byte("### Raw\n"))
+		if err != nil {
+			return 0, err
+		}
+		sourceString := fmt.Sprintf("**Source:** `%s`\n\n", filepath.Join(w.ChartName, w.ChartVersion, w.ChartPath))
+		_, err = f.Write([]byte(sourceString))
+		if err != nil {
+			return 0, err
+		}
+		_, err = f.Write([]byte(fmt.Sprintf("```%s\n", markdownType)))
+		if err != nil {
+			return 0, err
+		}
+		_, err = f.Write([]byte(w.Raw))
+		if err != nil {
+			return 0, err
+		}
+		_, err = f.Write([]byte("\n```\n"))
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	_, err = f.Write([]byte("### Output\n"))
 	if err != nil {
 		return 0, err
 	}
-
-	sourceString := fmt.Sprintf("#\n# Source: %s\n# Command: %s", w.ChartPath, w.Command)
-	_, err = f.Write([]byte(sourceString))
+	commandString := fmt.Sprintf("**Command:** `%s`\n\n", w.Command)
+	_, err = f.Write([]byte(commandString))
 	if err != nil {
 		return 0, err
 	}
-
-	re := regexp.MustCompile("\n")
-	outComment := re.ReplaceAllString("# "+string(out), "\n# ")
-	outCommentString := fmt.Sprintf("\n#\n%s\n", outComment)
-	_, err = f.Write([]byte(outCommentString))
+	_, err = f.Write([]byte(fmt.Sprintf("```%s\n", markdownType)))
+	if err != nil {
+		return 0, err
+	}
+	_, err = f.Write(out)
+	if err != nil {
+		return 0, err
+	}
+	_, err = f.Write([]byte("\n```\n"))
 	if err != nil {
 		return 0, err
 	}

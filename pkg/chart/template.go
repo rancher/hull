@@ -25,7 +25,7 @@ type Template interface {
 	GetValues() map[string]interface{}
 
 	YamlLint(t *testing.T)
-	HelmLint(t *testing.T)
+	HelmLint(t *testing.T, opts *HelmLintOptions)
 }
 
 type template struct {
@@ -99,13 +99,28 @@ func (t *template) yamlLint(tT *testing.T, templateFile string) {
 	}
 }
 
-func (t *template) HelmLint(tT *testing.T) {
+type HelmLintOptions struct {
+	Rancher RancherHelmLintOptions
+}
+
+type RancherHelmLintOptions struct {
+	Enabled bool
+}
+
+func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
+	if opts == nil {
+		opts = &HelmLintOptions{}
+	}
 	// Run helm linting
 	l := &helmLintSupport.Linter{
 		ChartDir: t.Chart.Path,
 	}
 	t.runDefaultRules(l)
 	t.runCustomRules(l)
+
+	if opts.Rancher.Enabled {
+		t.runRancherRules(l)
+	}
 
 	// log errors
 	errMap := map[string]error{}
