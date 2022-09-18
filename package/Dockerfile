@@ -43,9 +43,6 @@ WORKDIR /home/hull
 USER hull
 
 COPY package/entry.sh entry.sh
-COPY etc/lint.yaml lint.yaml
-
-ENV YAMLLINT_CONFIG_FILE=/home/hull/lint.yaml
 
 COPY examples tests
 COPY go.mod go.mod

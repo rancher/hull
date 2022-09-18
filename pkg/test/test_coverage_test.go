@@ -1,10 +1,11 @@
-package chart
+package test
 
 import (
 	"math/rand"
 	"sort"
 	"testing"
 
+	"github.com/aiyengar2/hull/pkg/chart"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	helmValues "helm.sh/helm/v3/pkg/cli/values"
@@ -54,21 +55,21 @@ func TestCoverage(t *testing.T) {
 	testCases := []struct {
 		Name                 string
 		Struct               interface{}
-		TemplateOptionsSlice []*TemplateOptions
+		TemplateOptionsSlice []*chart.TemplateOptions
 		Coverage             float64
 		ShouldThrowError     bool
 	}{
 		{
 			Name:                 "No Options",
 			Struct:               exampleStruct{},
-			TemplateOptionsSlice: []*TemplateOptions{},
+			TemplateOptionsSlice: []*chart.TemplateOptions{},
 			Coverage:             0,
 			ShouldThrowError:     false,
 		},
 		{
 			Name:   "Nil Options",
 			Struct: exampleStruct{},
-			TemplateOptionsSlice: []*TemplateOptions{
+			TemplateOptionsSlice: []*chart.TemplateOptions{
 				{
 					ValuesOptions: nil,
 				},
@@ -79,7 +80,7 @@ func TestCoverage(t *testing.T) {
 		{
 			Name:   "Bad Options",
 			Struct: exampleStruct{},
-			TemplateOptionsSlice: []*TemplateOptions{
+			TemplateOptionsSlice: []*chart.TemplateOptions{
 				{
 					ValuesOptions: &helmValues.Options{
 						Values: []string{"i-am-a-bad-option#2@"},
@@ -101,16 +102,16 @@ func TestCoverage(t *testing.T) {
 				}
 				return
 			}
-			coverage := Coverage(t, tc.Struct, tc.TemplateOptionsSlice...)
+			coverage, report := Coverage(t, tc.Struct, tc.TemplateOptionsSlice...)
 
 			if !t.Failed() {
-				assert.Equal(t, tc.Coverage, coverage)
+				assert.Equal(t, tc.Coverage, coverage, report)
 			}
 		})
 	}
 }
 
-func TestMergeValues(t *testing.T) {
+func TestMergeValuesOpts(t *testing.T) {
 	valueOptions := []helmValues.Options{}
 	for i := 0; i < 10; i++ {
 		randomArr := make([]string, 100)
@@ -126,6 +127,6 @@ func TestMergeValues(t *testing.T) {
 			Values:       randomArr[randomIndices[2]:],
 		})
 	}
-	values := mergeValues(valueOptions...)
+	values := mergeValuesOpts(valueOptions...)
 	assert.Equal(t, 10*100, len(values.FileValues)+len(values.StringValues)+len(values.ValueFiles)+len(values.Values))
 }

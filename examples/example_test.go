@@ -6,24 +6,25 @@ import (
 
 	"github.com/aiyengar2/hull/pkg/chart"
 	"github.com/aiyengar2/hull/pkg/checker"
+	"github.com/aiyengar2/hull/pkg/test"
 
 	"github.com/stretchr/testify/assert"
-)
-
-const (
-	defaultReleaseName = "example-chart"
-	defaultNamespace   = "default"
 )
 
 var (
 	chartPath = filepath.Join("..", "testdata", "charts", "example-chart")
 )
 
+var (
+	defaultReleaseName = "example-chart"
+	defaultNamespace   = "default"
+)
+
 type ExampleChart struct {
 	Data map[string]interface{} `jsonschema:"description=Data to be inserted into a ConfigMap"`
 }
 
-var suite = chart.TestSuite{
+var suite = test.Suite{
 	ChartPath:    chartPath,
 	ValuesStruct: &ExampleChart{},
 
@@ -36,7 +37,7 @@ var suite = chart.TestSuite{
 		},
 	},
 
-	Cases: []chart.TestCase{
+	Cases: []test.Case{
 		{
 			Name: "Using Defaults",
 
@@ -70,11 +71,7 @@ var suite = chart.TestSuite{
 }
 
 func TestChart(t *testing.T) {
-	suite.Run(t, &chart.HelmLintOptions{
-		Rancher: chart.RancherHelmLintOptions{
-			Enabled: true,
-		},
-	})
+	suite.Run(t, test.GetRancherOptions())
 }
 
 func TestCoverage(t *testing.T) {
@@ -82,9 +79,9 @@ func TestCoverage(t *testing.T) {
 	for _, c := range suite.Cases {
 		templateOptions = append(templateOptions, c.TemplateOptions)
 	}
-	coverage := chart.Coverage(t, ExampleChart{}, templateOptions...)
+	coverage, report := test.Coverage(t, ExampleChart{}, templateOptions...)
 	if t.Failed() {
 		return
 	}
-	assert.Equal(t, 1.00, coverage)
+	assert.Equal(t, 1.00, coverage, report)
 }

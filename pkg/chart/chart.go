@@ -3,6 +3,7 @@ package chart
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/aiyengar2/hull/pkg/parser"
 	"github.com/aiyengar2/hull/pkg/writer"
+	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/iancoleman/strcase"
 	"github.com/invopop/jsonschema"
 	"github.com/rancher/wrangler/pkg/objectset"
@@ -26,7 +28,7 @@ type Chart interface {
 
 	RenderTemplate(opts *TemplateOptions) (Template, error)
 
-	MatchesValuesSchema(t *testing.T, schemaStruct interface{})
+	SchemaMustMatchStruct(t *testing.T, schemaStruct interface{}, modifyInPlace bool)
 }
 
 type chart struct {
@@ -99,12 +101,7 @@ func (c *chart) RenderTemplate(opts *TemplateOptions) (Template, error) {
 	return t, nil
 }
 
-func (c *chart) MatchesValuesSchema(t *testing.T, schemaStruct interface{}) {
-	if c.Chart.Schema == nil {
-		t.Errorf("chart does not have schema")
-		return
-	}
-
+func (c *chart) SchemaMustMatchStruct(t *testing.T, schemaStruct interface{}, modifyInPlace bool) {
 	r := &jsonschema.Reflector{
 		Anonymous:      true,
 		DoNotReference: true,
@@ -121,20 +118,51 @@ func (c *chart) MatchesValuesSchema(t *testing.T, schemaStruct interface{}) {
 	}
 	expectedSchemaBytes = append(expectedSchemaBytes, '\n')
 
-	assert.Equal(t, string(expectedSchemaBytes), string(c.Chart.Schema))
-	if !t.Failed() {
+	var schema string
+	if c.Chart.Schema != nil {
+		schema = string(c.Chart.Schema)
+	}
+
+	if !modifyInPlace {
+		// assert and print error
+		assert.Equal(t, string(expectedSchemaBytes), schema)
+		if !t.Failed() {
+			return
+		}
+
+		// Write to output file
+		w := writer.NewOutputWriter(
+			t,
+			filepath.Join(c.Chart.Metadata.Name, c.Chart.Metadata.Version, "values.schema.json"),
+			fmt.Sprintf("jsonschema.Reflect(%T)", schemaStruct),
+			string(c.Chart.Schema),
+		)
+		if _, err := w.Write(expectedSchemaBytes); err != nil {
+			t.Error(err)
+			return
+		}
 		return
 	}
 
-	// Write to output file
-	w := writer.NewOutputWriter(
-		t,
-		filepath.Join(c.Chart.Metadata.Name, c.Chart.Metadata.Version, "values.schema.json"),
-		fmt.Sprintf("jsonschema.Reflect(%T)", schemaStruct),
-		string(c.Chart.Schema),
-	)
-	if _, err := w.Write(expectedSchemaBytes); err != nil {
+	if string(expectedSchemaBytes) == schema {
+		return
+	}
+
+	// Fix the actual values.schema.json file in the chart
+	fs := osfs.New(c.Path)
+	f, err := fs.OpenFile("values.schema.json", os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	if err != nil {
 		t.Error(err)
 		return
 	}
+	defer f.Close()
+	_, err = f.Write(expectedSchemaBytes)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	// now that we have fixed it, proceed with the new schema
+	t.Errorf("Modified the values.schema.json in-place due to changes to %T", schemaStruct)
+	c.Chart.Schema = expectedSchemaBytes
 }

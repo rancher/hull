@@ -45,6 +45,7 @@ func (t *template) validateRancherAnnotations() error {
 		_, ok := annotations[a]
 		if !ok {
 			err = multierr.Append(err, fmt.Errorf("chart missing required annotation '%s'", a))
+			continue
 		}
 	}
 
@@ -53,10 +54,12 @@ func (t *template) validateRancherAnnotations() error {
 		val, ok := annotations[a]
 		if !ok {
 			err = multierr.Append(err, fmt.Errorf("chart missing required annotation '%s'", a))
+			continue
 		}
 		_, constraintErr := semver.NewConstraint(val)
 		if constraintErr != nil {
 			err = multierr.Append(err, fmt.Errorf("chart has an invalid semver constraint string for annotation '%s': %s", a, constraintErr))
+			continue
 		}
 	}
 
@@ -67,6 +70,7 @@ func (t *template) validateRancherAnnotations() error {
 		val, ok := annotations[a]
 		if !ok {
 			err = multierr.Append(err, fmt.Errorf("chart missing required annotation '%s'", a))
+			continue
 		}
 		validVal := false
 		for _, v := range possibleV {
@@ -77,6 +81,7 @@ func (t *template) validateRancherAnnotations() error {
 		}
 		if !validVal {
 			err = multierr.Append(err, fmt.Errorf("chart has an invalid value for '%s': must be one of %s", a, possibleV))
+			continue
 		}
 	}
 

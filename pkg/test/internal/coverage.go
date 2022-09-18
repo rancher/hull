@@ -1,24 +1,41 @@
 package internal
 
 import (
+	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/iancoleman/strcase"
 )
 
-func CalculateCoverage(values map[string]interface{}, valuesStructType reflect.Type) float64 {
+func CalculateCoverage(values map[string]interface{}, valuesStructType reflect.Type) (float64, string) {
 	setKeys := getSetKeysFromMapInterface(values)
 	allKeys := getAllKeysFromStructType(valuesStructType)
 
 	numSetKeys := 0
+	var setKeySlice []string
+	var unsetKeySlice []string
 	for k := range allKeys {
 		if setKeys[k] {
 			numSetKeys += 1
+			setKeySlice = append(setKeySlice, k)
+			continue
 		}
+		unsetKeySlice = append(unsetKeySlice, k)
 	}
 
-	return float64(numSetKeys) / float64(len(allKeys))
+	sort.Strings(setKeySlice)
+	sort.Strings(unsetKeySlice)
+
+	var report string
+	if len(unsetKeySlice) == 0 {
+		report = fmt.Sprintf("All keys in struct are fully covered: %v", allKeys)
+	} else {
+		report = fmt.Sprintf("The following keys are not set: %v\nOnly the following keys are covered: %v", unsetKeySlice, setKeySlice)
+	}
+
+	return float64(numSetKeys) / float64(len(allKeys)), report
 }
 
 func getSetKeysFromMapInterface(values map[string]interface{}) map[string]bool {
@@ -71,10 +88,16 @@ func getAllKeysFromStructType(valuesStructType reflect.Type) map[string]bool {
 					continue
 				}
 				fieldType := field.Type
-				jsonFieldName, ok := field.Tag.Lookup("json")
-				if !ok {
+				jsonFieldVal, ok := field.Tag.Lookup("json")
+				var jsonFieldName string
+				if ok && len(jsonFieldVal) > 0 {
+					jsonFieldValSplit := strings.SplitN(jsonFieldVal, ",", 2) // ignore other comma-delimited args, like ',omitempty'
+					jsonFieldName = jsonFieldValSplit[0]
+				}
+				if len(jsonFieldName) == 0 {
 					jsonFieldName = strcase.ToLowerCamel(field.Name)
 				}
+
 				collectAllKeys(prefix+"."+jsonFieldName, fieldType)
 			}
 		case reflect.Slice, reflect.Map:

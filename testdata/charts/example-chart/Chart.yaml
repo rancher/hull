@@ -7,7 +7,7 @@ annotations:
   catalog.cattle.io/certified: rancher
   catalog.cattle.io/display-name: Hull Example Chart
   catalog.cattle.io/kube-version: '>=1.16.0-0'
-  catalog.cattle.io/namespace: cattle-helm-system
+  catalog.cattle.io/namespace: cattle-hull-system
   catalog.cattle.io/permits-os: linux,windows
   catalog.cattle.io/rancher-version: '>= 2.7.0-0 <=2.7.99-0'
   catalog.cattle.io/release-name: example-chart

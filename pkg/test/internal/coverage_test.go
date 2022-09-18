@@ -441,8 +441,8 @@ func TestCalculateCoverage(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			coverage := CalculateCoverage(tc.Values, reflect.TypeOf(tc.Struct))
-			assert.Equal(t, tc.Coverage, coverage)
+			coverage, report := CalculateCoverage(tc.Values, reflect.TypeOf(tc.Struct))
+			assert.Equal(t, tc.Coverage, coverage, report)
 		})
 	}
 }
@@ -664,6 +664,33 @@ func TestGetAllKeysFromStructType(t *testing.T) {
 				name string
 			}{},
 			Keys: nil,
+		},
+		{
+			Name: "JSON Tag Override",
+			Struct: struct {
+				Hello struct {
+					Name string `json:"world"`
+				}
+			}{},
+			Keys: []string{".hello.world"},
+		},
+		{
+			Name: "JSON Tag Override With OmitEmpty",
+			Struct: struct {
+				Hello struct {
+					Name string `json:"world,omitempty"`
+				}
+			}{},
+			Keys: []string{".hello.world"},
+		},
+		{
+			Name: "JSON Tag With Only OmitEmpty",
+			Struct: struct {
+				Hello struct {
+					Name string `json:",omitempty"`
+				}
+			}{},
+			Keys: []string{".hello.name"},
 		},
 		{
 			Name: "Single, Ptr, and Hidden Field",

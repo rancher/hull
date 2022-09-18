@@ -1,6 +1,7 @@
 package chart
 
 import (
+	_ "embed"
 	"fmt"
 	"io"
 	"os"
@@ -15,6 +16,9 @@ import (
 	"github.com/rancher/wrangler/pkg/objectset"
 	helmLintSupport "helm.sh/helm/v3/pkg/lint/support"
 )
+
+//go:embed configuration/yamllint.yaml
+var yamllintConf string
 
 type Template interface {
 	checker.Checker
@@ -83,7 +87,19 @@ func (t *template) yamlLint(tT *testing.T, templateFile string) {
 		return
 	}
 
-	cmd := exec.Command("yamllint", "-")
+	tempConfigFile, err := os.CreateTemp("", "")
+	if err != nil {
+		tT.Error(err)
+		return
+	}
+	defer tempConfigFile.Close()
+	defer os.RemoveAll(tempConfigFile.Name())
+	_, err = tempConfigFile.Write([]byte(yamllintConf))
+	if err != nil {
+		tT.Error(err)
+		return
+	}
+	cmd := exec.Command("yamllint", "-c", tempConfigFile.Name(), "-")
 	cmd.Stdin = strings.NewReader(raw)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -91,7 +107,7 @@ func (t *template) yamlLint(tT *testing.T, templateFile string) {
 		w := writer.NewOutputWriter(
 			tT,
 			filepath.Join(t.Chart.Metadata.Name, t.Chart.Metadata.Version, templateFile),
-			t.Options.String(),
+			cmd.String(),
 			raw,
 		)
 		w = io.MultiWriter(w, os.Stderr)

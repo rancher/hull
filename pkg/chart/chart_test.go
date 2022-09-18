@@ -127,7 +127,7 @@ func TestRenderTemplate(t *testing.T) {
 	}
 }
 
-func TestMatchesValuesSchema(t *testing.T) {
+func TestSchemaMustMatchStruct(t *testing.T) {
 	testCases := []struct {
 		Name             string
 		ChartPath        string
@@ -164,13 +164,13 @@ func TestMatchesValuesSchema(t *testing.T) {
 			}
 			if tc.ShouldThrowError {
 				fakeT := &testing.T{}
-				c.MatchesValuesSchema(fakeT, tc.Struct)
+				c.SchemaMustMatchStruct(fakeT, tc.Struct, false)
 				if !fakeT.Failed() {
 					t.Errorf("expected error to be thrown")
 				}
 				return
 			}
-			c.MatchesValuesSchema(t, tc.Struct)
+			c.SchemaMustMatchStruct(t, tc.Struct, false)
 		})
 	}
 }

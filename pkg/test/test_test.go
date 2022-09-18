@@ -1,10 +1,12 @@
-package chart
+package test
 
 import (
 	"path/filepath"
 	"testing"
 
+	"github.com/aiyengar2/hull/pkg/chart"
 	"github.com/aiyengar2/hull/pkg/checker"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -26,12 +28,20 @@ type ExampleChart struct {
 
 func TestTest(t *testing.T) {
 	testCases := []struct {
-		Name  string
-		Suite *TestSuite
+		Name             string
+		Suite            *Suite
+		ShouldThrowError bool
 	}{
 		{
+			Name: "Invalid Chart",
+			Suite: &Suite{
+				ChartPath: "",
+			},
+			ShouldThrowError: true,
+		},
+		{
 			Name: "Default",
-			Suite: &TestSuite{
+			Suite: &Suite{
 				ChartPath:    chartPath,
 				ValuesStruct: &ExampleChart{},
 				DefaultChecks: []checker.Check{
@@ -40,10 +50,10 @@ func TestTest(t *testing.T) {
 						Func: func(*testing.T, struct{}) {},
 					},
 				},
-				Cases: []TestCase{
+				Cases: []Case{
 					{
 						Name:            "Using Defaults",
-						TemplateOptions: NewTemplateOptions(defaultReleaseName, defaultNamespace),
+						TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace),
 						Checks: []checker.Check{
 							{
 								Name: "Noop",
@@ -58,7 +68,29 @@ func TestTest(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			tc.Suite.Run(t, nil)
+			if !tc.ShouldThrowError {
+				tc.Suite.Run(t, nil)
+				return
+			}
+			fakeT := &testing.T{}
+			tc.Suite.Run(fakeT, nil)
+			assert.True(t, fakeT.Failed(), "expected error to be thrown")
 		})
+	}
+}
+
+func TestGetRancherOptions(t *testing.T) {
+	o := GetRancherOptions()
+	assert.NotNil(t, o, "RancherOptions should not be nil")
+	if t.Failed() {
+		return
+	}
+	assert.NotNil(t, o.HelmLint, "RancherOptions.HelmLint should not be nil")
+	if t.Failed() {
+		return
+	}
+	assert.True(t, o.HelmLint.Rancher.Enabled, "RancherOptions.HelmLint.Rancher.Enabled is false")
+	if t.Failed() {
+		return
 	}
 }
