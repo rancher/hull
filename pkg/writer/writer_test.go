@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,30 +31,63 @@ func TestGetOutputFsFromEnv(t *testing.T) {
 
 	t.Run("No Output Directory Set", func(t *testing.T) {
 		os.Unsetenv(outputDirEnvVar)
-		fs := getOutputFsFromEnv()
-		assert.Nil(t, fs)
+
+		ioW := NewOutputWriter(t, "", "", "")
+		w := ioW.(*outputWriter)
+
+		assert.NotNil(t, w)
 		if t.Failed() {
 			return
 		}
-		w := NewOutputWriter(t, "", "", "")
-		n, err := w.Write([]byte("hello world"))
-		assert.Nil(t, err)
+		assert.Nil(t, w.outputFs, "expected writer to have no outputFs set")
+	})
+
+	t.Run("Output Directory Set By Environment", func(t *testing.T) {
+		outputDirName := uuid.New().String()
+		os.Setenv(outputDirEnvVar, outputDirName)
+
+		ioW := NewOutputWriter(t, "", "", "")
+		w := ioW.(*outputWriter)
+
+		assert.NotNil(t, w)
 		if t.Failed() {
 			return
 		}
-		assert.Zero(t, n)
+
+		assert.NotNil(t, w.outputFs, "expected writer's outputFs to match env var value on creation")
+		if t.Failed() {
+			return
+		}
+
+		assert.Equal(t, w.outputFs.Root(), filepath.Join(wd, outputDirName), "expected writer to be set to write to outputDir from env var")
 		if t.Failed() {
 			return
 		}
 	})
-	t.Run("Output Directory Set", func(t *testing.T) {
-		os.Setenv(outputDirEnvVar, "output")
-		fs := getOutputFsFromEnv()
-		assert.NotNil(t, fs)
+
+	t.Run("Output Directory Set By Call", func(t *testing.T) {
+		os.Unsetenv(outputDirEnvVar)
+
+		ioW := NewOutputWriter(t, "", "", "")
+		w := ioW.(*outputWriter)
+		assert.NotNil(t, w)
 		if t.Failed() {
 			return
 		}
-		assert.Equal(t, fs.Root(), filepath.Join(wd, "output"))
+		assert.Nil(t, w.outputFs, "expected writer to have no outputFs set")
+
+		outputDirName := uuid.New().String()
+		w.SetOutputDir(outputDirName)
+		assert.Nil(t, err)
+		if t.Failed() {
+			return
+		}
+
+		assert.NotNil(t, w.outputFs, "expected writer to not be nil since the outputDir has been manually set")
+		if t.Failed() {
+			return
+		}
+		assert.Equal(t, w.outputFs.Root(), filepath.Join(wd, outputDirName), "expected writer to be set to write to outputDir from Set call")
 		if t.Failed() {
 			return
 		}

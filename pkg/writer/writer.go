@@ -18,19 +18,6 @@ const (
 	outputDirEnvVar = "TEST_OUTPUT_DIR"
 )
 
-func getOutputFsFromEnv() billy.Filesystem {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	outputDir := os.Getenv(outputDirEnvVar)
-	if len(outputDir) == 0 {
-		return nil
-	}
-	outputDir = filepath.Join(wd, outputDir)
-	return osfs.New(outputDir)
-}
-
 var (
 	outputWriterLock sync.Mutex
 
@@ -55,18 +42,30 @@ func getWriterName(t *testing.T) string {
 }
 
 func NewOutputWriter(t *testing.T, source, command, raw string) io.Writer {
-	return &outputWriter{
+	w := &outputWriter{
 		Name:    getWriterName(t),
 		Source:  source,
 		Command: command,
 		Raw:     raw,
 	}
+	w.SetOutputDir(os.Getenv(outputDirEnvVar))
+	return w
+}
+
+func (w *outputWriter) SetOutputDir(outputDir string) {
+	if outputDir == "" {
+		return
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		// do not set anything
+		return
+	}
+	outputDir = filepath.Join(wd, outputDir)
+	w.outputFs = osfs.New(outputDir)
 }
 
 func (w *outputWriter) Write(out []byte) (n int, err error) {
-	if w.outputFs == nil {
-		w.outputFs = getOutputFsFromEnv()
-	}
 	if w.outputFs == nil {
 		return 0, nil
 	}
