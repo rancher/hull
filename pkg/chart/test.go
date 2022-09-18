@@ -21,7 +21,8 @@ type TestCase struct {
 func (s *TestSuite) Run(t *testing.T, helmLintOpts *HelmLintOptions) {
 	c, err := NewChart(s.ChartPath)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	t.Run("StructMatchesValuesSchema", func(t *testing.T) {
 		c.MatchesValuesSchema(t, s.ValuesStruct)
@@ -30,7 +31,8 @@ func (s *TestSuite) Run(t *testing.T, helmLintOpts *HelmLintOptions) {
 		t.Run(tc.Name, func(t *testing.T) {
 			template, err := c.RenderTemplate(tc.TemplateOptions)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			t.Run("HelmLint", func(t *testing.T) {
 				template.HelmLint(t, helmLintOpts)

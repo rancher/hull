@@ -24,16 +24,16 @@ type TemplateOptions struct {
 	Capabilities  *helmChartUtil.Capabilities
 }
 
-func (o *TemplateOptions) SetKubeVersion(version string) error {
+func (o *TemplateOptions) SetKubeVersion(version string) *TemplateOptions {
 	kubeVersion, err := helmChartUtil.ParseKubeVersion(version)
 	if err != nil {
-		return err
+		return nil
 	}
 	if o.Capabilities == nil {
 		o.Capabilities = &helmChartUtil.Capabilities{}
 	}
 	o.Capabilities.KubeVersion = *kubeVersion
-	return nil
+	return o
 }
 
 func (o *TemplateOptions) SetValue(key, value string) *TemplateOptions {
@@ -44,45 +44,10 @@ func (o *TemplateOptions) SetValue(key, value string) *TemplateOptions {
 	return o
 }
 
-// func (o *TemplateOptions) SetValueSlice(key, values []string) {
-// 	if o.ValuesOptions == nil {
-// 		o.ValuesOptions = &helmValues.Options{}
-// 	}
-// 	valuesStr := "{"
-// 	for _, value := range values {
-// 		if len(valuesStr) > 1 {
-// 			valuesStr += ", "
-// 		}
-// 		valuesStr += value
-// 	}
-// 	valuesStr += "}"
-// 	o.ValuesOptions.Values = append(o.ValuesOptions.Values, fmt.Sprintf("%s=%s", key, valuesStr))
-// }
-
-// func (o *TemplateOptions) SetValueObject(key, values map[string]interface{}) []string {
-// 	var setValues []string
-// 	var helper func(string, interface{})
-// 	helper = func(prefix string, value interface{}) {
-// 		switch val := value.(type) {
-// 		case map[string]interface{}:
-// 			for k, v := range val {
-// 				if len(prefix) > 0 {
-// 					prefix = prefix + "."
-// 				}
-// 				helper(fmt.Sprintf("%s%s", prefix, k), v)
-// 			}
-// 		case []interface{}:
-// 			for i, v := range val {
-// 				helper(fmt.Sprintf("%s[%d]", prefix, i), v)
-// 			}
-// 		default:
-// 			setString := fmt.Sprintf("%s=%s", prefix, val)
-// 			setValues = append(setValues, setString)
-// 		}
-// 	}
-// 	helper("", values)
-// 	return setValues
-// }
+func (o *TemplateOptions) IsUpgrade(isUpgrade bool) *TemplateOptions {
+	o.Release.IsUpgrade = isUpgrade
+	return o
+}
 
 func (o *TemplateOptions) setDefaults(chart string) *TemplateOptions {
 	if o == nil {
@@ -107,7 +72,10 @@ func (o *TemplateOptions) setDefaults(chart string) *TemplateOptions {
 }
 
 func (o TemplateOptions) String() string {
-	args := fmt.Sprintf("helm template -n %s", o.Release.Namespace)
+	args := "helm template"
+	if len(o.Release.Namespace) > 0 {
+		args += " -n " + o.Release.Namespace
+	}
 	relArgs := toReleaseArgs(o.Release)
 	if len(relArgs) > 0 {
 		args += " " + relArgs
@@ -120,7 +88,10 @@ func (o TemplateOptions) String() string {
 	if len(valArgs) > 0 {
 		args += " " + valArgs
 	}
-	args += fmt.Sprintf(" %s <path-to-chart>", o.Release.Name)
+	if len(o.Release.Name) > 0 {
+		args += fmt.Sprintf(" %s", o.Release.Name)
+	}
+	args += " <path-to-chart>"
 	return args
 }
 
@@ -135,7 +106,7 @@ func toCapabilitiesArgs(capOpts *helmChartUtil.Capabilities) string {
 	if capOpts == nil || capOpts == helmChartUtil.DefaultCapabilities {
 		return ""
 	}
-	return fmt.Sprintf("--kube-version %s", capOpts.KubeVersion)
+	return fmt.Sprintf("--kube-version %s", capOpts.KubeVersion.Version)
 }
 
 func toValuesArgs(valOpts *helmValues.Options) string {

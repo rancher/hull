@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -42,7 +43,10 @@ func (t *template) GetChart() Chart {
 }
 
 func (t *template) GetOptions() *TemplateOptions {
-	return t.Options
+	if t.Options == nil {
+		t.Options = &TemplateOptions{}
+	}
+	return t.Options.setDefaults(t.Chart.Name())
 }
 
 func (t *template) GetFiles() map[string]string {
@@ -84,11 +88,9 @@ func (t *template) yamlLint(tT *testing.T, templateFile string) {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		tT.Errorf("[%s@%s] %s failed lint checks against %s", t.Chart.Metadata.Name, t.Chart.Metadata.Version, templateFile, t.Options)
-		w := writer.NewChartPathWriter(
+		w := writer.NewOutputWriter(
 			tT,
-			t.Chart.Metadata.Name,
-			t.Chart.Metadata.Version,
-			templateFile,
+			filepath.Join(t.Chart.Metadata.Name, t.Chart.Metadata.Version, templateFile),
 			t.Options.String(),
 			raw,
 		)
@@ -126,12 +128,7 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 	errMap := map[string]error{}
 	for _, msg := range l.Messages {
 		switch msg.Severity {
-		case helmLintSupport.UnknownSev:
-			continue
-		case helmLintSupport.InfoSev:
-			tT.Log(msg.Error())
-			continue
-		case helmLintSupport.WarningSev:
+		case helmLintSupport.InfoSev, helmLintSupport.WarningSev:
 			tT.Log(msg.Error())
 			continue
 		case helmLintSupport.ErrorSev:
@@ -154,11 +151,9 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 	}
 	for path, err := range errMap {
 		tT.Error(err)
-		w := writer.NewChartPathWriter(
+		w := writer.NewOutputWriter(
 			tT,
-			t.Chart.Metadata.Name,
-			t.Chart.Metadata.Version,
-			path,
+			filepath.Join(t.Chart.Metadata.Name, t.Chart.Metadata.Version, path),
 			command,
 			rawFiles[path],
 		)
@@ -169,9 +164,13 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 }
 
 func (t *template) Check(tT *testing.T, opts *checker.Options, objStructFunc interface{}) {
-	if t == nil || t.ObjectSets == nil {
+	if t.ObjectSets == nil {
 		return
 	}
-	check := checker.NewChecker(t.ObjectSets)
+	check, err := checker.NewChecker(t.ObjectSets)
+	if err != nil {
+		tT.Error(err)
+		return
+	}
 	check.Check(tT, opts, objStructFunc)
 }

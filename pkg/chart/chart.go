@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aiyengar2/hull/pkg/parser"
 	"github.com/aiyengar2/hull/pkg/writer"
 	"github.com/iancoleman/strcase"
 	"github.com/invopop/jsonschema"
-	"github.com/rancher/helm-locker/pkg/objectset/parser"
 	"github.com/rancher/wrangler/pkg/objectset"
 	"github.com/stretchr/testify/assert"
 	helmChart "helm.sh/helm/v3/pkg/chart"
@@ -79,9 +79,6 @@ func (c *chart) RenderTemplate(opts *TemplateOptions) (Template, error) {
 		"": objectset.NewObjectSet(),
 	}
 	for source, manifestString := range templateYamls {
-		if filepath.Ext(source) != ".yaml" {
-			continue
-		}
 		source := strings.SplitN(source, string(filepath.Separator), 2)[1]
 		manifestString := fmt.Sprintf("---\n%s", manifestString)
 		manifestOs, err := parser.Parse(manifestString)
@@ -109,6 +106,7 @@ func (c *chart) MatchesValuesSchema(t *testing.T, schemaStruct interface{}) {
 	}
 
 	r := &jsonschema.Reflector{
+		Anonymous:      true,
 		DoNotReference: true,
 		Namer: func(t reflect.Type) string {
 			return strcase.ToLowerCamel(t.Name())
@@ -129,11 +127,9 @@ func (c *chart) MatchesValuesSchema(t *testing.T, schemaStruct interface{}) {
 	}
 
 	// Write to output file
-	w := writer.NewChartPathWriter(
+	w := writer.NewOutputWriter(
 		t,
-		c.Chart.Metadata.Name,
-		c.Chart.Metadata.Version,
-		"values.schema.json",
+		filepath.Join(c.Chart.Metadata.Name, c.Chart.Metadata.Version, "values.schema.json"),
 		fmt.Sprintf("jsonschema.Reflect(%T)", schemaStruct),
 		string(c.Chart.Schema),
 	)

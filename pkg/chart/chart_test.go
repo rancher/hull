@@ -56,7 +56,8 @@ func TestNewChart(t *testing.T) {
 			}
 			expectedChartPath, err := filepath.Abs(tc.ChartPath)
 			if err != nil {
-				t.Fatal("test case is invalid, chartPath provided is not a valid path")
+				t.Error("test case is invalid, chartPath provided is not a valid path")
+				return
 			}
 			assert.Equal(t, expectedChartPath, c.GetPath())
 			assert.NotNil(t, c.GetHelmChart(), "did not load underlying helm chart")
@@ -67,20 +68,10 @@ func TestNewChart(t *testing.T) {
 func TestRenderTemplate(t *testing.T) {
 	c, err := NewChart(filepath.Join("..", "..", "testdata", "charts", "example-chart"))
 	if err != nil {
-		t.Error("unable to construct chart from chart path")
+		t.Errorf("unable to construct chart from chart path: %s", err)
 		return
 	}
 	if c == nil {
-		t.Errorf("received nil chart")
-		return
-	}
-
-	badC, err := NewChart(filepath.Join("..", "..", "testdata", "charts", "bad-chart"))
-	if err != nil {
-		t.Error("unable to construct chart from chart path")
-		return
-	}
-	if badC == nil {
 		t.Errorf("received nil chart")
 		return
 	}
@@ -116,12 +107,6 @@ func TestRenderTemplate(t *testing.T) {
 				},
 			},
 			ShouldThrowError: true,
-		},
-		{
-			Name:             "Bad Chart",
-			Chart:            badC,
-			Opts:             nil,
-			ShouldThrowError: false,
 		},
 	}
 	for _, tc := range testCases {

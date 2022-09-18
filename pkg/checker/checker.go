@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/aiyengar2/hull/pkg/checker/internal"
-	"github.com/rancher/helm-locker/pkg/objectset/parser"
+	"github.com/aiyengar2/hull/pkg/parser"
 	"github.com/rancher/wrangler/pkg/objectset"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -17,29 +17,55 @@ type Checker interface {
 	Check(t *testing.T, opts *Options, objStructFunc interface{})
 }
 
-func NewChecker(objectsets map[string]*objectset.ObjectSet) Checker {
-	return &checker{
-		ObjectSets: objectsets,
+func NewChecker(osMap map[string]*objectset.ObjectSet) (Checker, error) {
+	if osMap == nil {
+		return nil, nil
 	}
+	if len(osMap) == 0 {
+		return nil, nil
+	}
+	osMapCopy := make(map[string]*objectset.ObjectSet)
+	rootOs := objectset.NewObjectSet()
+	for osPath, os := range osMap {
+		if osPath == "" {
+			continue
+		}
+		if os == nil {
+			continue
+		}
+		if os.Len() == 0 {
+			continue
+		}
+		osMapCopy[osPath] = os
+		rootOs.Add(os.All()...)
+	}
+	osMapCopy[""] = rootOs
+	return &checker{
+		ObjectSets: osMapCopy,
+	}, nil
 }
 
-func NewCheckerFromObjectSet(os *objectset.ObjectSet) Checker {
+func NewCheckerFromObjectSet(os *objectset.ObjectSet, name string) (Checker, error) {
 	if os == nil {
-		return nil
+		return nil, nil
 	}
-	return &checker{
-		ObjectSets: map[string]*objectset.ObjectSet{
-			"": os,
-		},
+	if os.Len() == 0 {
+		return nil, nil
 	}
+	return NewChecker(map[string]*objectset.ObjectSet{
+		name: os,
+	})
 }
 
-func NewCheckerFromString(rawYaml string) (Checker, error) {
+func NewCheckerFromString(rawYaml string, name string) (Checker, error) {
 	os, err := parser.Parse(rawYaml)
 	if err != nil {
 		return nil, err
 	}
-	return NewCheckerFromObjectSet(os), nil
+	if os == nil {
+		return nil, nil
+	}
+	return NewCheckerFromObjectSet(os, name)
 }
 
 type checker struct {
@@ -47,7 +73,7 @@ type checker struct {
 }
 
 func (c *checker) Check(t *testing.T, opts *Options, objStructFunc interface{}) {
-	if c == nil || c.ObjectSets == nil || len(c.ObjectSets) == 0 {
+	if objStructFunc == nil {
 		return
 	}
 	if opts == nil {
@@ -56,18 +82,8 @@ func (c *checker) Check(t *testing.T, opts *Options, objStructFunc interface{}) 
 	doFunc := internal.WrapFunc(objStructFunc, &internal.ParseOptions{
 		Scheme: Scheme,
 	})
-	if !opts.PerTemplateManifest {
-		fullManifestOs, ok := c.ObjectSets[""]
-		if !ok {
-			t.Errorf("runner does not have valid template to execute tests")
-			return
-		}
-		doFunc(t, fullManifestOs.All())
-		return
-	}
-	if len(c.ObjectSets) <= 1 {
-		// per template objectsets not provided
-		t.Error("no templates to execute")
+	if !opts.PerTemplateManifest || len(c.ObjectSets) == 1 {
+		doFunc(t, c.ObjectSets[""].All())
 		return
 	}
 	for path, os := range c.ObjectSets {
