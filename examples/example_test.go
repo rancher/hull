@@ -1,4 +1,4 @@
-package unit
+package examples
 
 import (
 	"path/filepath"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/aiyengar2/hull/pkg/chart"
 	"github.com/aiyengar2/hull/pkg/checker"
-	"github.com/aiyengar2/hull/pkg/checker/resource"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,13 +23,18 @@ type ExampleChart struct {
 	Data map[string]interface{} `jsonschema:"description=Data to be inserted into a ConfigMap"`
 }
 
-// convert into jsonschema to validate values.schema.json contents
-// verify that template values can be marshalled into a struct of this type
-// define coverage based on the number of fields that are touched in the struct
-
 var suite = chart.TestSuite{
 	ChartPath:    chartPath,
 	ValuesStruct: &ExampleChart{},
+
+	DefaultChecks: []checker.Check{
+		{
+			Name: "has exactly two configmaps",
+			Func: func(t *testing.T, cms Configmaps) {
+				assert.Equal(t, 2, len(cms.ConfigMaps))
+			},
+		},
+	},
 
 	Cases: []chart.TestCase{
 		{
@@ -72,22 +77,14 @@ func TestChart(t *testing.T) {
 	})
 }
 
-type Configmaps struct {
-	resource.ConfigMaps
-}
-
-func checkIfConfigMapsHaveData(data map[string]string) checker.CheckFunc {
-	return func(t *testing.T, cms Configmaps) {
-		for _, cm := range cms.ConfigMaps {
-			assert.Equal(t, cm.Data, data)
-		}
+func TestCoverage(t *testing.T) {
+	templateOptions := []*chart.TemplateOptions{}
+	for _, c := range suite.Cases {
+		templateOptions = append(templateOptions, c.TemplateOptions)
 	}
+	coverage := chart.Coverage(t, ExampleChart{}, templateOptions...)
+	if t.Failed() {
+		return
+	}
+	assert.Equal(t, 1.00, coverage)
 }
-
-// Classes of tests that need to be tested
-// Those that apply on every manifest: windows nodeSelectors and tolerations
-// Those that apply
-
-// convert go struct to openapi schema and assert equivalence to values.schema.json
-// define "coverage" on an arbitrary values.yaml struct to be a test that needs to be 100
-// define scaffold for "default" test cases

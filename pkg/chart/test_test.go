@@ -34,6 +34,12 @@ func TestTest(t *testing.T) {
 			Suite: &TestSuite{
 				ChartPath:    chartPath,
 				ValuesStruct: &ExampleChart{},
+				DefaultChecks: []checker.Check{
+					{
+						Name: "Noop Default",
+						Func: func(*testing.T, struct{}) {},
+					},
+				},
 				Cases: []TestCase{
 					{
 						Name:            "Using Defaults",

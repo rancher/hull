@@ -7,9 +7,10 @@ import (
 )
 
 type TestSuite struct {
-	ChartPath    string
-	ValuesStruct interface{}
-	Cases        []TestCase
+	ChartPath     string
+	ValuesStruct  interface{}
+	DefaultChecks []checker.Check
+	Cases         []TestCase
 }
 
 type TestCase struct {
@@ -38,6 +39,11 @@ func (s *TestSuite) Run(t *testing.T, helmLintOpts *HelmLintOptions) {
 				template.HelmLint(t, helmLintOpts)
 			})
 			t.Run("YamlLint", template.YamlLint)
+			for _, check := range s.DefaultChecks {
+				t.Run(check.Name, func(t *testing.T) {
+					template.Check(t, check.Options, check.Func)
+				})
+			}
 			for _, check := range tc.Checks {
 				t.Run(check.Name, func(t *testing.T) {
 					template.Check(t, check.Options, check.Func)
