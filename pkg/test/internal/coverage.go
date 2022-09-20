@@ -74,6 +74,14 @@ func getSetKeysFromMapInterface(values map[string]interface{}) map[string]bool {
 
 func getAllKeysFromStructType(valuesStructType reflect.Type) map[string]bool {
 	allKeys := make(map[string]bool)
+	if len(valuesStructType.Name()) > 0 {
+		structName := valuesStructType.Name()
+		// struct must be public to get any keys
+		if string(structName[0]) == strings.ToLower(string(structName[0])) {
+			return allKeys
+		}
+	}
+
 	var collectAllKeys func(string, reflect.Type)
 	collectAllKeys = func(prefix string, valuesType reflect.Type) {
 		if valuesType.Kind() == reflect.Ptr {
@@ -95,9 +103,13 @@ func getAllKeysFromStructType(valuesStructType reflect.Type) map[string]bool {
 					jsonFieldName = jsonFieldValSplit[0]
 				}
 				if len(jsonFieldName) == 0 {
+					if field.Anonymous && fieldType.Kind() == reflect.Struct {
+						// special case for anonymous field; if there's no JSON tag, infer that the fields are recorded inline
+						collectAllKeys(jsonFieldName, fieldType)
+						continue
+					}
 					jsonFieldName = strcase.ToLowerCamel(field.Name)
 				}
-
 				collectAllKeys(prefix+"."+jsonFieldName, fieldType)
 			}
 		case reflect.Slice, reflect.Map:

@@ -12,7 +12,7 @@ import (
 )
 
 func TestCoverage(t *testing.T) {
-	type exampleStruct struct {
+	type ExampleStruct struct {
 		First struct {
 			Name int
 		}
@@ -61,14 +61,14 @@ func TestCoverage(t *testing.T) {
 	}{
 		{
 			Name:                 "No Options",
-			Struct:               exampleStruct{},
+			Struct:               ExampleStruct{},
 			TemplateOptionsSlice: []*chart.TemplateOptions{},
 			Coverage:             0,
 			ShouldThrowError:     false,
 		},
 		{
 			Name:   "Nil Options",
-			Struct: exampleStruct{},
+			Struct: ExampleStruct{},
 			TemplateOptionsSlice: []*chart.TemplateOptions{
 				{
 					ValuesOptions: nil,
@@ -79,7 +79,7 @@ func TestCoverage(t *testing.T) {
 		},
 		{
 			Name:   "Bad Options",
-			Struct: exampleStruct{},
+			Struct: ExampleStruct{},
 			TemplateOptionsSlice: []*chart.TemplateOptions{
 				{
 					ValuesOptions: &helmValues.Options{

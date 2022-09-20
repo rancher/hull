@@ -8,7 +8,7 @@ import (
 )
 
 func TestCalculateCoverage(t *testing.T) {
-	type exampleStruct struct {
+	type ExampleStruct struct {
 		First struct {
 			Name int
 		}
@@ -48,7 +48,7 @@ func TestCalculateCoverage(t *testing.T) {
 		}
 	}
 
-	expectedKeys := getAllKeysFromStructType(reflect.TypeOf(exampleStruct{}))
+	expectedKeys := getAllKeysFromStructType(reflect.TypeOf(ExampleStruct{}))
 	numExpectedKeys := float64(len(expectedKeys))
 
 	testCases := []struct {
@@ -60,7 +60,7 @@ func TestCalculateCoverage(t *testing.T) {
 		{
 			Name:     "No Coverage",
 			Values:   nil,
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 0,
 		},
 		{
@@ -70,7 +70,7 @@ func TestCalculateCoverage(t *testing.T) {
 					"hello": 5, // unknown
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 0,
 		},
 		{
@@ -80,7 +80,7 @@ func TestCalculateCoverage(t *testing.T) {
 					"name": 5, // known
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 1 / numExpectedKeys,
 		},
 		{
@@ -91,7 +91,7 @@ func TestCalculateCoverage(t *testing.T) {
 					"hello": 5, // unknown
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 1 / numExpectedKeys,
 		},
 		{
@@ -107,7 +107,7 @@ func TestCalculateCoverage(t *testing.T) {
 					},
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 2 / numExpectedKeys,
 		},
 		{
@@ -132,7 +132,7 @@ func TestCalculateCoverage(t *testing.T) {
 					},
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 6 / numExpectedKeys,
 		},
 		{
@@ -157,7 +157,7 @@ func TestCalculateCoverage(t *testing.T) {
 					},
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 2 / numExpectedKeys,
 		},
 		{
@@ -184,7 +184,7 @@ func TestCalculateCoverage(t *testing.T) {
 					},
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 2 / numExpectedKeys,
 		},
 		{
@@ -213,7 +213,7 @@ func TestCalculateCoverage(t *testing.T) {
 					},
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 6 / numExpectedKeys,
 		},
 		{
@@ -250,7 +250,7 @@ func TestCalculateCoverage(t *testing.T) {
 					},
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 8 / numExpectedKeys,
 		},
 		{
@@ -307,7 +307,7 @@ func TestCalculateCoverage(t *testing.T) {
 					},
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 1,
 		},
 		{
@@ -356,7 +356,7 @@ func TestCalculateCoverage(t *testing.T) {
 					},
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 0,
 		},
 		{
@@ -435,7 +435,7 @@ func TestCalculateCoverage(t *testing.T) {
 					},
 				},
 			},
-			Struct:   exampleStruct{},
+			Struct:   ExampleStruct{},
 			Coverage: 1,
 		},
 	}
@@ -634,6 +634,90 @@ func TestGetSetKeysFromMapInterface(t *testing.T) {
 }
 
 func TestGetAllKeysFromStructType(t *testing.T) {
+	type ComplexWithStructs struct {
+		First struct {
+			Name int
+		}
+		Second struct {
+			Third struct {
+				NamePtr *float64
+			}
+		}
+		Third struct {
+			Fourth struct {
+				Fifth struct {
+					hidden string
+				}
+			}
+		}
+		Fourth struct {
+			NameSlice []rune
+			Fifth     struct {
+				NameMap map[string]string
+				Sixth   struct {
+					NameSliceSlice [][]float64
+					NameMapMap     map[string]map[string]int64
+					Seventh        struct {
+						NameSliceMap []map[string]byte
+						NameMapSlice map[string][]interface{}
+					}
+				}
+			}
+		}
+		Fifth []struct {
+			NameHello string
+			Sixth     map[string][]map[string]struct {
+				Seventh map[string][]struct {
+					NameWorld interface{}
+				}
+			}
+		}
+	}
+
+	type complexWithStructs struct {
+		First struct {
+			Name int
+		}
+		Second struct {
+			Third struct {
+				NamePtr *float64
+			}
+		}
+		Third struct {
+			Fourth struct {
+				Fifth struct {
+					hidden string
+				}
+			}
+		}
+		Fourth struct {
+			NameSlice []rune
+			Fifth     struct {
+				NameMap map[string]string
+				Sixth   struct {
+					NameSliceSlice [][]float64
+					NameMapMap     map[string]map[string]int64
+					Seventh        struct {
+						NameSliceMap []map[string]byte
+						NameMapSlice map[string][]interface{}
+					}
+				}
+			}
+		}
+		Fifth []struct {
+			NameHello string
+			Sixth     map[string][]map[string]struct {
+				Seventh map[string][]struct {
+					NameWorld interface{}
+				}
+			}
+		}
+	}
+
+	type privateStruct struct {
+		Name string
+	}
+
 	testCases := []struct {
 		Name   string
 		Struct interface{}
@@ -650,6 +734,16 @@ func TestGetAllKeysFromStructType(t *testing.T) {
 				Name string
 			}{},
 			Keys: []string{".name"},
+		},
+		{
+			Name:   "Private Struct",
+			Struct: privateStruct{},
+			Keys:   nil,
+		},
+		{
+			Name:   "Embedded Private Struct",
+			Struct: struct{ privateStruct }{},
+			Keys:   nil,
 		},
 		{
 			Name: "Single Ptr Field",
@@ -863,46 +957,8 @@ func TestGetAllKeysFromStructType(t *testing.T) {
 			Keys: []string{".hello.world[][].rancher"},
 		},
 		{
-			Name: "Complex With Structs",
-			Struct: struct {
-				First struct {
-					Name int
-				}
-				Second struct {
-					Third struct {
-						NamePtr *float64
-					}
-				}
-				Third struct {
-					Fourth struct {
-						Fifth struct {
-							hidden string
-						}
-					}
-				}
-				Fourth struct {
-					NameSlice []rune
-					Fifth     struct {
-						NameMap map[string]string
-						Sixth   struct {
-							NameSliceSlice [][]float64
-							NameMapMap     map[string]map[string]int64
-							Seventh        struct {
-								NameSliceMap []map[string]byte
-								NameMapSlice map[string][]interface{}
-							}
-						}
-					}
-				}
-				Fifth []struct {
-					NameHello string
-					Sixth     map[string][]map[string]struct {
-						Seventh map[string][]struct {
-							NameWorld interface{}
-						}
-					}
-				}
-			}{},
+			Name:   "Exported Complex With Structs",
+			Struct: ComplexWithStructs{},
 			Keys: []string{
 				".first.name",
 				".second.third.namePtr",
@@ -912,6 +968,51 @@ func TestGetAllKeysFromStructType(t *testing.T) {
 				".fourth.fifth.sixth.seventh.nameSliceMap", ".fourth.fifth.sixth.seventh.nameMapSlice",
 				".fifth[].nameHello", ".fifth[].sixth[][][].seventh[][].nameWorld",
 			},
+		},
+		{
+			Name:   "Exported Complex With Structs Anonymously Embedded Without JSON Tag",
+			Struct: struct{ ComplexWithStructs }{},
+			Keys: []string{
+				".first.name",
+				".second.third.namePtr",
+				".fourth.nameSlice",
+				".fourth.fifth.nameMap",
+				".fourth.fifth.sixth.nameSliceSlice", ".fourth.fifth.sixth.nameMapMap",
+				".fourth.fifth.sixth.seventh.nameSliceMap", ".fourth.fifth.sixth.seventh.nameMapSlice",
+				".fifth[].nameHello", ".fifth[].sixth[][][].seventh[][].nameWorld",
+			},
+		},
+		{
+			Name: "Exported Complex With Structs Anonymously Embedded With JSON Tag",
+			Struct: struct {
+				ComplexWithStructs `json:"complex"`
+			}{},
+			Keys: []string{
+				".complex.first.name",
+				".complex.second.third.namePtr",
+				".complex.fourth.nameSlice",
+				".complex.fourth.fifth.nameMap",
+				".complex.fourth.fifth.sixth.nameSliceSlice", ".complex.fourth.fifth.sixth.nameMapMap",
+				".complex.fourth.fifth.sixth.seventh.nameSliceMap", ".complex.fourth.fifth.sixth.seventh.nameMapSlice",
+				".complex.fifth[].nameHello", ".complex.fifth[].sixth[][][].seventh[][].nameWorld",
+			},
+		},
+		{
+			Name:   "Private Complex With Structs",
+			Struct: complexWithStructs{},
+			Keys:   nil,
+		},
+		{
+			Name:   "Private Anonymous Complex With Structs Anonymously Embedded Without JSON Tag",
+			Struct: struct{ complexWithStructs }{},
+			Keys:   nil,
+		},
+		{
+			Name: "Private Anonymous Complex With Structs Anonymously Embedded With JSON Tag",
+			Struct: struct {
+				complexWithStructs `json:"complex"`
+			}{},
+			Keys: nil,
 		},
 	}
 	for _, tc := range testCases {
