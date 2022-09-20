@@ -23,9 +23,9 @@ RUN curl -LO "https://get.helm.sh/helm-${helm_version}-linux-amd64.tar.gz" \
 
 ###
 
-# Sonobuoy Integration
+# JUnit XML Report Output Support
 # note: this tool has been added to allow users to declare that the output of the tests should
-# be converted from human-readable Go test output to a sonobuoy-plugin-readable JUnit XML report
+# be converted from human-readable Go test output to a machine-parseable JUnit XML report
 
 ARG gotestsum_version=v1.8.2
 RUN go install gotest.tools/gotestsum@@${gotestsum_version}

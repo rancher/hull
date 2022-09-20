@@ -10,13 +10,16 @@ done
 
 root_dir=$(pwd)
 for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
+    echo "Running tests for MODULE='${module}'..."
+    echo ""
     pushd ${module} 2>/dev/null 1>/dev/null
     if [[ -z ${PLUGIN_MODE} ]]; then
-        gotestsum -- -count=1 ./...
+        gotestsum -- -count=1 -cover ./...
     else
-        gotestsum --jsonfile=${root_dir}/go_test_${module}.json -- -count=1 ./...
+        gotestsum --jsonfile=${root_dir}/go_test_${module}.json -- -count=1 -cover ./...
     fi
     popd 2>/dev/null 1>/dev/null
+    echo ""
 done
 
 if [[ -n ${PLUGIN_MODE} ]]; then
@@ -28,3 +31,4 @@ if [[ -n ${PLUGIN_MODE} ]]; then
 fi
 
 echo "Finished running tests"
+echo ""
