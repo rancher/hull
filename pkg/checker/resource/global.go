@@ -8,17 +8,15 @@ import (
 )
 
 func init() {
-	admissionregistrationv1.AddToScheme(checker.Scheme)
-	apiextensionsv1.AddToScheme(checker.Scheme)
-	corev1.AddToScheme(checker.Scheme)
-}
-
-type Global struct {
-	CRDs
-	Namespaces
-
-	MutatingWebhookConfigurations
-	ValidatingWebhookConfigurations
+	if err := admissionregistrationv1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
+	if err := apiextensionsv1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
+	if err := corev1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
 }
 
 type CRDs []*apiextensionsv1.CustomResourceDefinition

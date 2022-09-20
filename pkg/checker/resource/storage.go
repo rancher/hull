@@ -6,12 +6,9 @@ import (
 )
 
 func init() {
-	corev1.AddToScheme(checker.Scheme)
-}
-
-type Storage struct {
-	PersistentVolumes
-	PersistentVolumeClaims
+	if err := corev1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
 }
 
 type PersistentVolumes []*corev1.PersistentVolume

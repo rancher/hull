@@ -7,24 +7,12 @@ import (
 )
 
 func init() {
-	corev1.AddToScheme(checker.Scheme)
-	rbacv1.AddToScheme(checker.Scheme)
-}
-
-type RBAC struct {
-	NamespaceRBAC
-	ClusterRBAC
-	ServiceAccounts
-}
-
-type ClusterRBAC struct {
-	ClusterRoles
-	ClusterRoleBindings
-}
-
-type NamespaceRBAC struct {
-	Roles
-	RoleBindings
+	if err := corev1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
+	if err := rbacv1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
 }
 
 type ServiceAccounts []*corev1.ServiceAccount

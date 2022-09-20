@@ -121,7 +121,10 @@ func parseObjectsIntoStruct(objs []runtime.Object, objectStruct interface{}, opt
 			if kind == gvk.Kind {
 				objType = reflect.PtrTo(reflectType)
 				newObj := reflect.New(objType.Elem()).Interface()
-				opts.Scheme.Convert(obj, newObj, nil)
+				err := opts.Scheme.Convert(obj, newObj, nil)
+				if err != nil {
+					continue
+				}
 				obj = newObj.(runtime.Object)
 				obj.GetObjectKind().SetGroupVersionKind(gvk)
 				break

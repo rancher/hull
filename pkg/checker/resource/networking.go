@@ -8,17 +8,15 @@ import (
 )
 
 func init() {
-	corev1.AddToScheme(checker.Scheme)
-	networkingv1.AddToScheme(checker.Scheme)
-	apiregistrationv1.AddToScheme(checker.Scheme)
-}
-
-type Networking struct {
-	APIServices
-	Services
-	Ingresses
-
-	NetworkPolicies
+	if err := corev1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
+	if err := networkingv1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
+	if err := apiregistrationv1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
 }
 
 type APIServices []*apiregistrationv1.APIService

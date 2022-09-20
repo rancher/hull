@@ -10,25 +10,21 @@ import (
 )
 
 func init() {
-	appsv1.AddToScheme(checker.Scheme)
-	autoscalingv1.AddToScheme(checker.Scheme)
-	batchv1.AddToScheme(checker.Scheme)
-	corev1.AddToScheme(checker.Scheme)
-	policyv1beta1.AddToScheme(checker.Scheme)
-}
-
-type Compute struct {
-	CronJobs
-	DaemonSets
-	Deployments
-	Jobs
-	StatefulSets
-
-	ConfigMaps
-	Secrets
-
-	PodSecurityPolicies
-	HorizontalPodAutoscalers
+	if err := appsv1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
+	if err := autoscalingv1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
+	if err := batchv1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
+	if err := corev1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
+	if err := policyv1beta1.AddToScheme(checker.Scheme); err != nil {
+		panic(err)
+	}
 }
 
 type CronJobs []*batchv1.CronJob

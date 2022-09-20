@@ -21,11 +21,26 @@ var (
 )
 
 func init() {
-	appsv1.AddToScheme(defaultScheme)
-	batchv1.AddToScheme(defaultScheme)
-	corev1.AddToScheme(defaultScheme)
-	rbacv1.AddToScheme(defaultScheme)
-	rbacv1beta1.AddToScheme(defaultScheme)
+	err := appsv1.AddToScheme(defaultScheme)
+	if err != nil {
+		panic(err)
+	}
+	err = batchv1.AddToScheme(defaultScheme)
+	if err != nil {
+		panic(err)
+	}
+	err = corev1.AddToScheme(defaultScheme)
+	if err != nil {
+		panic(err)
+	}
+	err = rbacv1.AddToScheme(defaultScheme)
+	if err != nil {
+		panic(err)
+	}
+	err = rbacv1beta1.AddToScheme(defaultScheme)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func TestWrapFunc(t *testing.T) {
