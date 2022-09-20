@@ -3,7 +3,7 @@ set -e
 
 cd $(dirname $0)/..
 
-echo Running validation
+echo "Running validation"
 
 PACKAGES="$(go list ./...)"
 
@@ -12,10 +12,10 @@ if ! command -v golangci-lint; then
     exit
 fi
 
-echo Running validation
+echo "Running validation"
 
-echo Running: golangci-lint
+echo "Running: golangci-lint"
 golangci-lint run
 
-echo Running: go fmt
+echo "Running: go fmt"
 test -z "$(go fmt ${PACKAGES} | tee /dev/stderr)"
