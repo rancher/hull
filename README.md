@@ -3,63 +3,81 @@ hull
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Hull is a tool for testing Helm charts.
+Hull is a **Go testing framework** for writing comprehensive tests on [Helm](https://github.com/helm/helm) charts.
+
+Once you have defined your suite of tests targeting a specific chart (or multiple charts) using Hull, **you can simply run your suite(s) of tests by running `go test`**.
 
 ## Prerequisites
 
-Similar to [`helm/chart-testing`](https://github.com/helm/chart-testing), it is recommended to use the `rancher/hull` Docker image that already comes with the following tools pre-installed. However, if you are running the Hull binary locally, you will be expected to install the following dependencies locally on your machine to successfully run Hull:
-* [Go](https://go.dev)
-* [Trivy](https://github.com/aquasecurity/trivy)
-* [Yamllint](https://github.com/adrienverge/yamllint)
-* [Conftest](https://www.conftest.dev/)
+You will be expected to install the following dependencies locally on your machine to successfully run Hull:
+* [Go](https://go.dev) (minimal requirement to be able to run `go test`)
+* [Yamllint](https://github.com/adrienverge/yamllint) (allows Hull to run YAML linting on manifests produced by `helm template` commands)
 
 ## Getting Started
 
-For more information, see the [Getting Started guide](docs/gettingstarted.md).
+Please see [`examples/example_test.go`](./examples/example_test.go) for an example of a Go test written for a single chart in this fashion on the chart located in [`testdata/charts/example-chart`](./testdata/charts/example-chart/). To run the example test, you can simply run:
+
+```bash
+go test examples/example_test.go
+```
+
+Under the hood, Hull leverages [`github.com/stretchr/testify/assert`](github.com/stretchr/testify/assert) for test assertions; it is recommended, but not required, for users to also use this framework when designing Hull tests.
+
+## How Does Hull Work?
+
+For more information on the overall testing methodology that Hull follows, see the [Design guide](docs/design.md).
 
 ## Who needs Hull?
 
-Anyone who maintains a Helm repository that would like to add an automated testing suite that covers the following basic, core functionality:
+Anyone who maintains a Helm repository or a set of Helm charts that would like to add an automated testing suite that allows them to validate the following basic, core functionality:
 
-### Chart Testing (Batteries Included)
+- **Linting:** Ensure that the Helm chart passes a basic `helm lint` command and that basic, common values.yaml configurations of the Helm charts (encoded in `TemplateOptions` within a `Case`) compile to YAML that passes stylistic linting checks, without validating the actual content of the YAML produced from a logical perspective. 
+  - On a failure, if `export TEST_OUTPUT_DIR=output` is set, generate an `output/test-{TIMESTAMP}.md` file that outlines the linting error on **each rendered template file** that failed validation on YAML linting, along with the error outputted, for easy debugging.
 
-- **Linting + Schema Validation:** Ensure that the Helm chart passes a basic `helm lint` command and that basic, common values.yaml configurations of the Helm charts compile to YAML that passes stylistic linting checks, without validating the actual content of the YAML produced from a logical perspective.
-- **Unit Testing:** Ensure that the Kubernetes manifest produced by running the `helm template` command on basic, common values.yaml configurations of the Helm charts compiles to YAML that produces valid content that matches the Kubernetes schema.
-- **Security Testing:** Ensure that any images provided to the chart in basic, common values.yaml configurations of the Helm charts (including the default values.yaml configuration) do not contain any known CVEs associated with them by running a trivy image scan on them
+- **Unit Testing:** Ensure that the Kubernetes manifest produced by running the `helm template` command on basic, common values.yaml configurations (encoded in `TemplateOptions` within a `Case`) applied to the Helm charts generates YAML that matches the expectations of chart developers (encoded in `Checks` within a `Case`) from a logical perspective. Also ensure that all possible `Cases` pass a basic set of `Checks` (encoded in `DefaultChecks`)
+  - Example of a `DefaultCheck`: Resources follow best practices that allow them to be deployed onto specialized environments (i.e. Deployments have nodeSelectors and tolerations for Windows)
+  - Example of a `DefaultCheck`: Resources meet other business-specific requirements (i.e. all images start with rancher/mirrored- unless they belong on an allow-list of Rancher original images)
 
-### Release Testing (Batteries Included)
+> **Note:**
+>
+> When it comes to a chart developer defining a `Check` in Hull, Hull is **extremely permissive** with respect to how a chart developer can choose to write their tests. 
+>
+> Under the hood, Hull accepts any `CheckFunc`, which is just an `interface{}` (i.e. any Golang object!), and will perform the validation of the `CheckFunc` **at runtime** based on the logic encoded in [`pkg/checker/internal/do.go`](./pkg/checker/internal/do.go).
+>
+> **TLDR**: As long as your `CheckFunc` matches a signature of `func(*testing.T, someRuntimeObjectStruct)` where `someRuntimeObjectStruct` is any struct that contains only slices of objects that implement [`k8s.io/apimachinery/pkg/runtime.Object`](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime#Object) **somewhere in the struct**, Hull will automatically manage marshalling your generated template objects into the provided struct for your tests.
+>
+> In this way, Hull encourages chart developers to think of changes applied to `values.yaml` as changes to **sub-manifests**: specific sets of resource types encoded in `someRuntimeObjectStruct`. 
+>
+> For example, if a field in your values.yaml should ensure that "all Deployments should have a specific set of user-provided `metadata.labels` attached to them", you will want to define a `CheckFunc` with a signature like `func(*testing.T, struct{ []*appsv1.Deployment })`.
+>
+> For examples of such tests, take a look at the [`pkg/checker/resource`](./pkg/checker/resource) module that encodes these tests for common Kubernetes resource types.
 
-- **Install Testing / Smoke Testing:** Upon installing a helm chart onto a cluster using basic, common values.yaml configurations of Helm charts, ensure that all pods are up and running (`helm install --wait`) and that a `helm test` is successfully executed. Also ensure that upgrades from the second newest version of a chart (if it exists) to the latest version of the chart work if a given values.yaml exists in both the newer and older chart and that in-place upgrades work.
+> **Note:**
+>
+> On writing your own custom `CheckFunc`, you will need to ensure that you add any Go types to the `pkg/checker.Scheme` defined [here](./pkg/checker/checker.go).
+>
+> This is usually done by running the `AddToScheme` function usually generated by most Go-based Kubernetes controller frameworks; for example, if you have `import appsv1 "k8s.io/api/apps/v1"` in your code to embed an `*[]appsv1.Deployment`, you can call `appsv1.AddToScheme(checker.Scheme)` to load the type into the default scheme.
+>
+> Without adding a type to the underlying `checker.Scheme`, Hull will not be able to figure out what type a specific object within a manifest should be marshalled into; this is generally done by converting the `apiVersion` and `kind` fields of a given YAML object into a `GroupVersionKind` (GVK), which in turn can be passed into the [`runtime.Scheme`](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime#Scheme) to map that GVK to a corresponding Go struct.
+>
+> If a type cannot be found in the `checker.Scheme`, it will **always** be assumed that your object is of type [`*unstructured.Unstructured`](https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured#Unstructured).
+>
+> **Alternatively, it is highly recommended to define structs that simply embed the structs defined in `pkg/resources`, which already take care of these imports on `init()` for you.**
+
+- **Schema Validation**: Ensure that the Helm chart has a `values.schema.json` (or **automatically manage the creation and maintainence of one**) that matches a Go `struct` that is defined in your Go tests (encoded in `ValuesStruct`).
+  - If the `ValuesStruct` is defined, Hull will automatically assert that **every single field in your values.yaml has a corresponding `Case` that tests it**. If there is no `Case` that tests a specific field, the fields within your `values.yaml` that are not tested will be outputted in a failure message on running `TestCoverage`.
+
+### Currently Unsupported (To Be Implemented)
+
+The following types of tests are in scope for the expected use cases that Hull can **eventually** address around Helm chart testing, but are not currently supported:
+
+- **Security Testing:** Add support for additional helper functions for chart developers to use in [`pkg/checker/resource`](./pkg/checker/resource) to verify that all workloads in a given rendered template manifest do not contain any known CVEs associated with them by running a `trivy` image scan on all images. Also add additional helper functions to encode best practices for workloads in Helm charts.
+
+- **Install Testing / Smoke Testing:** Upon installing a helm chart onto a cluster using basic, common values.yaml configurations of Helm charts, ensure that all pods are up and running (`helm install --wait`) and that a `helm test` is successfully executed. Also ensure that upgrades from the second newest version of a chart (if it exists) to the latest version of the chart work if a given `values.yaml` exists in both the newer and older chart and that in-place upgrades work.
   - Note: it is expected that your Helm chart must already have `helm test` hook resources that verify that all exposed endpoints of your application can be accessed via some k8s Service using Kubernetes DNS directly from within the cluster and that any known endpoints that indicate application status (i.e. a /health endpoint) return a valid response that indicates that the endpoint is healthy, if available. See the [Grafana Helm chart](https://github.com/grafana/helm-charts/tree/main/charts/grafana/templates/tests) or [MySQL Helm chart](https://github.com/helm/charts/tree/master/stable/mysql/templates/tests) for simple examples of how to add this type of testing via [Bats](https://github.com/bats-core/bats-core)
 
-### Advanced Testing (Batteries NOT Included)
-
-Since Hull just runs all the Go tests mounted to the container at the `test` directory, users are also recommended to implement the following additional application-specific / business-logic-specific suite of tests:
-
-- **Advanced Unit Testing:** Tests that are run on the sets of Kubernetes manifests produced by running the `helm template` command on basic, common values.yaml configurations of the Helm charts
-  - e.g. Resources follow best practices that allow them to be deployed onto specialized environments (i.e. Deployments have nodeSelectors and tolerations for Windows)
-  - e.g. Resources meet other business-specific requirements (i.e. all images start with rancher/mirrored- unless they belong on an allow-list of Rancher original images)
-- **Integration / Vanilla K8s Testing:** Tests that are run upon installing a helm chart onto a cluster using basic, common values.yaml configurations of Helm charts by mimicking common user workflows
+- **Integration / Vanilla K8s Testing:** Upon installing a helm chart onto a cluster using basic, common values.yaml configurations of Helm charts, ensure that user workflows work as expected
   - e.g. Mimic a user creating a certain resource via kubectl and validate that some configuration is modified correctly (a Kubernetes resource is created / modified, a log is emitted, a file is created / modified within a container, the output of a specific HTTP call returns the desired result, etc.)
-
-To support defining these Go tests, Hull has a set of helper libraries that define allow users to quickly parse all templates and execute Rego-style policies on resources that are created from those manifests or execute certain common actions on live clusters.
-
-Once your custom tests have been written, either simply run the Hull image with the additional Go tests mounted somewhere in the `/home/hull/tests` directory or build a new image off the `rancher/hull` base image that already contains your tests. 
-
-*In general, it's recommended to package custom tests in your own image to allow them to be run easily locally or as part of GitHub Action Workflows. See `rancher/rancher-hull` for an example of such an image.*
-
-## How is this different from projects like `helm/chart-testing`?
-
-[`helm/chart-testing`](https://github.com/helm/chart-testing) currently only supports the following basic linting and smoke testing (via running `helm install|upgrade` followed by `helm test`) for Helm charts:
-- Linting the `Chart.yaml` fields via [Yamale](https://github.com/23andMe/Yamale)
-- Running [Yamllint](https://github.com/adrienverge/yamllint) on the `Chart.yaml` and all `values.yaml` files (including those in `ci/*-values.yaml`)
-- Validating that the maintainers listed in the Chart.yaml are valid accounts
-- Running `helm lint` on all `values.yaml` files (including those in `ci/*-values.yaml`)
-- Running various `helm install` / `helm-upgrade` scenarios on all `values.yaml` files (including those in `ci/*-values.yaml`), where each action is followed by a `helm test` that will run all the test hooks defined in the chart
-
-Hull supports most of these capabilities but makes it easier to add more advanced testing functionality by allowing users to add additional Go tests using a framework of your own choice!
-
-See the [Design guide](docs/design.md) for more information on what kinds of tests are covered by default.
 
 ## Developing
 
