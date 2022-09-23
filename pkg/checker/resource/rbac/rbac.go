@@ -1,4 +1,4 @@
-package resource
+package rbac
 
 import (
 	"github.com/aiyengar2/hull/pkg/checker"

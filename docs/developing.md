@@ -6,6 +6,9 @@
 ## This directory will contain additional docs to assist users in getting started with using Hull
 docs/
 
+## This directory contains an example of a Helm Chart Test Suite built using Hull that operates on the chart found in testdata/charts/example-chart
+examples/
+
 ## This directory contains the image that is used to build rancher/hull, which is hosted on hub.docker.com
 package/
   Dockerfile

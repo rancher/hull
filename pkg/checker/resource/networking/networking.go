@@ -1,4 +1,4 @@
-package resource
+package networking
 
 import (
 	"github.com/aiyengar2/hull/pkg/checker"

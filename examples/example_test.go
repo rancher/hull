@@ -6,6 +6,7 @@ import (
 
 	"github.com/aiyengar2/hull/pkg/chart"
 	"github.com/aiyengar2/hull/pkg/checker"
+	"github.com/aiyengar2/hull/pkg/checker/resource/workloads"
 	"github.com/aiyengar2/hull/pkg/test"
 
 	"github.com/stretchr/testify/assert"
@@ -31,9 +32,7 @@ var suite = test.Suite{
 	DefaultChecks: []checker.Check{
 		{
 			Name: "has exactly two configmaps",
-			Func: func(t *testing.T, cms Configmaps) {
-				assert.Equal(t, 2, len(cms.ConfigMaps))
-			},
+			Func: workloads.EnsureNumConfigMaps(2),
 		},
 	},
 
@@ -46,7 +45,7 @@ var suite = test.Suite{
 			Checks: []checker.Check{
 				{
 					Name: "has correct default data in ConfigMaps",
-					Func: checkIfConfigMapsHaveData(
+					Func: workloads.EnsureConfigMapsHaveData(
 						map[string]string{"config": "hello: rancher"},
 					),
 				},
@@ -61,7 +60,7 @@ var suite = test.Suite{
 			Checks: []checker.Check{
 				{
 					Name: "sets .data.config on ConfigMaps",
-					Func: checkIfConfigMapsHaveData(
+					Func: workloads.EnsureConfigMapsHaveData(
 						map[string]string{"config": "hello: world"},
 					),
 				},

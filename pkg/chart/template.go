@@ -179,7 +179,7 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 	}
 }
 
-func (t *template) Check(tT *testing.T, opts *checker.Options, objStructFunc interface{}) {
+func (t *template) Check(tT *testing.T, opts *checker.Options, objStructFunc checker.CheckFunc) {
 	if t.ObjectSets == nil {
 		return
 	}

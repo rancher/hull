@@ -88,7 +88,6 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/rancher/helm-locker v0.0.1 // indirect
 	github.com/rancher/lasso v0.0.0-20220303220127-8cf5555ec03c // indirect
 	github.com/rancher/wrangler v1.0.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
@@ -125,7 +124,6 @@ require (
 	k8s.io/cli-runtime v0.23.1 // indirect
 	k8s.io/client-go v0.24.2 // indirect
 	k8s.io/klog/v2 v2.60.1 // indirect
-	k8s.io/kube-aggregator v0.24.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20220328201542-3ee0da9b0b42 // indirect
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect
 	oras.land/oras-go v1.1.0 // indirect

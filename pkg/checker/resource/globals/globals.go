@@ -1,4 +1,4 @@
-package resource
+package globals
 
 import (
 	"github.com/aiyengar2/hull/pkg/checker"

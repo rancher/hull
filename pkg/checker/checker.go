@@ -14,7 +14,7 @@ var (
 )
 
 type Checker interface {
-	Check(t *testing.T, opts *Options, objStructFunc interface{})
+	Check(t *testing.T, opts *Options, objStructFunc CheckFunc)
 }
 
 func NewChecker(osMap map[string]*objectset.ObjectSet) (Checker, error) {
@@ -72,7 +72,7 @@ type checker struct {
 	ObjectSets map[string]*objectset.ObjectSet
 }
 
-func (c *checker) Check(t *testing.T, opts *Options, objStructFunc interface{}) {
+func (c *checker) Check(t *testing.T, opts *Options, objStructFunc CheckFunc) {
 	if objStructFunc == nil {
 		return
 	}

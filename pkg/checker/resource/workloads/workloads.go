@@ -1,4 +1,4 @@
-package resource
+package workloads
 
 import (
 	"github.com/aiyengar2/hull/pkg/checker"
