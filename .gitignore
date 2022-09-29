@@ -8,6 +8,6 @@
 .vscode/
 .DS_Store
 output
-cov.out
-coverage.out
+*.out
+*.test
 /charts
