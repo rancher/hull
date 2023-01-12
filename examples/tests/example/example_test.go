@@ -1,7 +1,6 @@
-package examples
+package example
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/aiyengar2/hull/pkg/chart"
@@ -13,21 +12,13 @@ import (
 )
 
 var (
-	chartPath = filepath.Join("..", "testdata", "charts", "example-chart")
-)
-
-var (
 	defaultReleaseName = "example-chart"
 	defaultNamespace   = "default"
 )
 
-type ExampleChart struct {
-	Data map[string]interface{} `jsonschema:"description=Data to be inserted into a ConfigMap"`
-}
-
 var suite = test.Suite{
-	ChartPath:    chartPath,
-	ValuesStruct: &ExampleChart{},
+	ChartPath:    ChartPath,
+	ValuesStruct: &ValuesYaml{},
 
 	DefaultChecks: []checker.Check{
 		{
@@ -78,7 +69,7 @@ func TestCoverage(t *testing.T) {
 	for _, c := range suite.Cases {
 		templateOptions = append(templateOptions, c.TemplateOptions)
 	}
-	coverage, report := test.Coverage(t, ExampleChart{}, templateOptions...)
+	coverage, report := test.Coverage(t, ValuesYaml{}, templateOptions...)
 	if t.Failed() {
 		return
 	}

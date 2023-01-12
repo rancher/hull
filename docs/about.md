@@ -125,7 +125,7 @@ You may want to do something even more complex, such as encoding whether all the
 
 Ideally, the intention of Hull is to provide a full set of utility functions in [`pkg/checker/resource`](../pkg/checker/resource) that emit `checker.CheckFunc` functions that cover common types of checks that users will want to execute.
 
-For example, in the [`examples/example_test.go`](../examples/example_test.go) the following utility function from [`pkg/checker/resource/workloads`](../pkg/checker/resource/workloads/) emits a `checker.CheckFunc` that ensure that the number of `ConfigMap` objects emitted is equivalent to the number provided:
+For example, in the [`examples/tests/example/example_test.go`](../examples/tests/example/example_test.go) the following utility function from [`pkg/checker/resource/workloads`](../pkg/checker/resource/workloads/) emits a `checker.CheckFunc` that ensure that the number of `ConfigMap` objects emitted is equivalent to the number provided:
 
 ```go
 workloads.EnsureNumConfigMaps(2)
@@ -253,7 +253,7 @@ As a result, Hull is able to leverage type introspection to identify all possibl
 
 In return for defining this struct, Hull will leverage [`invopop/jsonschema`](https://github.com/invopop/jsonschema) to automatically translate your Go struct (while respecting struct tags identified by `jsonschema:`!) into a JSON schema, which will automatically add or replace the existing `values.schema.json` file of the chart.
 
-> **Note**: Automatic management of your `values.schema.json` can be disabled by setting `DoNotModifyChartSchemaInPlace` in the options provided to the `test.Suite` on `suite.Run`.
+To enable automatic management of your `values.schema.json`, see the example in [`examples/codegen.go`](../examples/codegen.go), which will create or update all registered schemas to a file at the provided path (relative to the go module root) on running `go generate`.
 
 #### Calculating Coverage (%)
 
