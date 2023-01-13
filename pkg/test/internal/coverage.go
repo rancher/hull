@@ -18,7 +18,7 @@ func CalculateCoverage(values map[string]interface{}, valuesStructType reflect.T
 	var unsetKeySlice []string
 	for k := range allKeys {
 		if setKeys[k] {
-			numSetKeys += 1
+			numSetKeys++
 			setKeySlice = append(setKeySlice, k)
 			continue
 		}

@@ -103,7 +103,7 @@ func (t *template) yamlLint(tT *testing.T, templateFile string) {
 	cmd.Stdin = strings.NewReader(raw)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		tT.Errorf("[%s@%s] %s failed lint checks against %s", t.Chart.Metadata.Name, t.Chart.Metadata.Version, templateFile, t.Options)
+		tT.Errorf("[%s@%s] %s failed lint checks against %s: %s", t.Chart.Metadata.Name, t.Chart.Metadata.Version, templateFile, t.Options, err)
 		w := writer.NewOutputWriter(
 			tT,
 			filepath.Join(t.Chart.Metadata.Name, t.Chart.Metadata.Version, templateFile),
