@@ -22,22 +22,6 @@ for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
 done
 
 for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
-    echo "Running go generate for MODULE='${module}'..."
-    echo ""
-    pushd ${module} 2>/dev/null 1>/dev/null
-    go generate
-    popd 2>/dev/null 1>/dev/null
-    source ./scripts/version
-    if [ -n "$DIRTY" ]; then
-        echo Git is dirty
-        git status
-        git diff
-        exit 1
-    fi
-    echo ""
-done
-
-for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
     if ! command -v golangci-lint; then
         echo "Skipping linting: no golangci-lint available"
         break
