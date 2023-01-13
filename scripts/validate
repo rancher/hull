@@ -5,17 +5,54 @@ cd $(dirname $0)/..
 
 echo "Running validation"
 
-PACKAGES="$(go list ./...)"
+for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
+    echo "Running go generate for MODULE='${module}'..."
+    echo ""
+    pushd ${module} 2>/dev/null 1>/dev/null
+    go generate
+    popd 2>/dev/null 1>/dev/null
+    source ./scripts/version
+    if [ -n "$DIRTY" ]; then
+        echo Git is dirty
+        git status
+        git diff
+        exit 1
+    fi
+    echo ""
+done
 
-if ! command -v golangci-lint; then
-    echo Skipping validation: no golangci-lint available
-    exit
-fi
+for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
+    echo "Running go generate for MODULE='${module}'..."
+    echo ""
+    pushd ${module} 2>/dev/null 1>/dev/null
+    go generate
+    popd 2>/dev/null 1>/dev/null
+    source ./scripts/version
+    if [ -n "$DIRTY" ]; then
+        echo Git is dirty
+        git status
+        git diff
+        exit 1
+    fi
+    echo ""
+done
 
-echo "Running validation"
+for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
+    if ! command -v golangci-lint; then
+        echo "Skipping linting: no golangci-lint available"
+        break
+    fi
+    echo "Running golangci-lint for MODULE='${module}'..."
+    echo ""
+    pushd ${module} 2>/dev/null 1>/dev/null
+    golangci-lint run
+    popd 2>/dev/null 1>/dev/null
+    echo ""
+done
 
-echo "Running: golangci-lint"
-golangci-lint run
-
-echo "Running: go fmt"
-test -z "$(go fmt ${PACKAGES} | tee /dev/stderr)"
+for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
+    echo "Running go fmt for MODULE='${module}'..."
+    pushd ${module} 2>/dev/null 1>/dev/null
+    test -z "$(go fmt $(go list ./...) | tee /dev/stderr)"
+    popd 2>/dev/null 1>/dev/null
+done
