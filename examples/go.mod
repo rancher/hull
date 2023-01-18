@@ -15,6 +15,7 @@ replace (
 
 require (
 	github.com/aiyengar2/hull v0.0.0-00010101000000-000000000000
+	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.7.0
 )
 
@@ -93,7 +94,6 @@ require (
 	github.com/rancher/lasso v0.0.0-20220303220127-8cf5555ec03c // indirect
 	github.com/rancher/wrangler v1.0.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/cobra v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

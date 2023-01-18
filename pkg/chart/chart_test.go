@@ -164,13 +164,13 @@ func TestSchemaMustMatchStruct(t *testing.T) {
 			}
 			if tc.ShouldThrowError {
 				fakeT := &testing.T{}
-				c.SchemaMustMatchStruct(fakeT, tc.Struct, false)
+				c.SchemaMustMatchStruct(fakeT, tc.Struct)
 				if !fakeT.Failed() {
 					t.Errorf("expected error to be thrown")
 				}
 				return
 			}
-			c.SchemaMustMatchStruct(t, tc.Struct, false)
+			c.SchemaMustMatchStruct(t, tc.Struct)
 		})
 	}
 }

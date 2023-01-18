@@ -25,8 +25,7 @@ func GetRancherOptions() *SuiteOptions {
 }
 
 type SuiteOptions struct {
-	HelmLint                      *chart.HelmLintOptions
-	DoNotModifyChartSchemaInPlace bool
+	HelmLint *chart.HelmLintOptions
 }
 
 func (o *SuiteOptions) setDefaults() *SuiteOptions {
@@ -56,7 +55,7 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 		return
 	}
 	t.Run("SchemaMustMatchStruct", func(t *testing.T) {
-		c.SchemaMustMatchStruct(t, s.ValuesStruct, !opts.DoNotModifyChartSchemaInPlace)
+		c.SchemaMustMatchStruct(t, s.ValuesStruct)
 	})
 	for _, tc := range s.Cases {
 		t.Run(tc.Name, func(t *testing.T) {
