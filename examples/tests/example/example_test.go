@@ -20,12 +20,7 @@ var suite = test.Suite{
 	ChartPath:    ChartPath,
 	ValuesStruct: &ValuesYaml{},
 
-	DefaultChecks: []checker.Check{
-		{
-			Name: "has exactly two configmaps",
-			Func: workloads.EnsureNumConfigMaps(2),
-		},
-	},
+	DefaultChecks: []checker.Check{},
 
 	Cases: []test.Case{
 		{
@@ -34,6 +29,10 @@ var suite = test.Suite{
 			TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace),
 
 			Checks: []checker.Check{
+				{
+					Name: "has exactly two configmaps",
+					Func: workloads.EnsureNumConfigMaps(2),
+				},
 				{
 					Name: "has correct default data in ConfigMaps",
 					Func: workloads.EnsureConfigMapsHaveData(
@@ -50,9 +49,31 @@ var suite = test.Suite{
 
 			Checks: []checker.Check{
 				{
+					Name: "has exactly two configmaps",
+					Func: workloads.EnsureNumConfigMaps(2),
+				},
+				{
 					Name: "sets .data.config on ConfigMaps",
 					Func: workloads.EnsureConfigMapsHaveData(
 						map[string]string{"config": "hello: world"},
+					),
+				},
+			},
+		},
+		{
+			Name: "Using Defaults with KubeVersion 2.0.0",
+
+			TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace).SetKubeVersion("2.0.0"),
+
+			Checks: []checker.Check{
+				{
+					Name: "has exactly three configmaps",
+					Func: workloads.EnsureNumConfigMaps(3),
+				},
+				{
+					Name: "has correct default data in ConfigMaps",
+					Func: workloads.EnsureConfigMapsHaveData(
+						map[string]string{"config": "hello: rancher"},
 					),
 				},
 			},

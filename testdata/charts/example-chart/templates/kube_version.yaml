@@ -1,0 +1,11 @@
+# Note: the version listed below is intended to not exist on purpose
+{{- if semverCompare ">= 2.0.0" .Capabilities.KubeVersion.Version }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-kubeconfig-configmap
+  namespace: {{ .Release.Namespace }}
+data:
+  config: |- 
+{{ .Values.data | toYaml | indent 4 }}
+{{ end }}

@@ -1,0 +1,10 @@
+{{- if gt (len (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "")) 0 }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-lookup-configmap
+  namespace: {{ .Release.Namespace }}
+data:
+  config: |- 
+{{ .Values.data | toYaml | indent 4 }}
+{{ end }}
