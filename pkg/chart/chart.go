@@ -82,6 +82,12 @@ func (c *chart) RenderTemplate(opts *TemplateOptions) (Template, error) {
 		if err != nil {
 			return nil, err
 		}
+		if manifestOs == nil {
+			// Note: the action taken here is to workaround a bug in wrangler:
+			// https://github.com/rancher/wrangler/blob/5167c04fcdd50e24d9710813572382eeb3064805/pkg/objectset/objectset.go#L99
+			// os.order is undefined, so without introducing at least on object os.All() will always fail
+			continue
+		}
 		files[source] = manifestString
 		objectsets[source] = manifestOs
 		objectsets[""] = objectsets[""].Add(manifestOs.All()...)

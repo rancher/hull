@@ -130,6 +130,21 @@ func TestParse(t *testing.T) {
 			Template:        "\n---\n---\n",
 			ExpectedObjects: []unstructured.Unstructured{},
 		},
+		{
+			Name:            "No Resources But Some YAML Without ApiVersion Or Kind",
+			Template:        "hello: world",
+			ExpectedObjects: []unstructured.Unstructured{},
+		},
+		{
+			Name:            "No Resources But Some YAML Without ApiVersion",
+			Template:        "kind: world",
+			ExpectedObjects: []unstructured.Unstructured{},
+		},
+		{
+			Name:            "No Resources But Some YAML Without Kind",
+			Template:        "apiVersion: world",
+			ExpectedObjects: []unstructured.Unstructured{},
+		},
 	}
 
 	for _, tc := range testCases {

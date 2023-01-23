@@ -32,6 +32,11 @@ func getTemplate(t *testing.T, chartPath string, opts *TemplateOptions) Template
 }
 
 func TestTemplate(t *testing.T) {
+	// NOTE: should be changed if we add more files to the example-chart
+	filesInExampleChart := []string{
+		"configmap.yaml",
+		"NOTES.txt",
+	}
 	testCases := []struct {
 		Name               string
 		ChartPath          string
@@ -46,7 +51,7 @@ func TestTemplate(t *testing.T) {
 			ChartPath:          exampleChartPath,
 			TemplateOptions:    nil,
 			HelmLintOptions:    nil,
-			NumExpectedFiles:   len([]string{"configmap.yaml"}), // should be changed if we add more files to the example-chart
+			NumExpectedFiles:   len(filesInExampleChart),
 			ShouldFailYamlLint: false,
 			ShouldFailHelmLint: false,
 		},
@@ -59,7 +64,7 @@ func TestTemplate(t *testing.T) {
 					Enabled: true,
 				},
 			},
-			NumExpectedFiles:   len([]string{"configmap.yaml"}), // should be changed if we add more files to the example-chart
+			NumExpectedFiles:   len(filesInExampleChart),
 			ShouldFailYamlLint: false,
 			ShouldFailHelmLint: false,
 		},
