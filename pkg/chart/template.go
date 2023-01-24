@@ -14,6 +14,7 @@ import (
 	"github.com/aiyengar2/hull/pkg/writer"
 	multierr "github.com/hashicorp/go-multierror"
 	"github.com/rancher/wrangler/pkg/objectset"
+	helmAction "helm.sh/helm/v3/pkg/action"
 	helmLintSupport "helm.sh/helm/v3/pkg/lint/support"
 )
 
@@ -138,20 +139,37 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 	if opts == nil {
 		opts = &HelmLintOptions{}
 	}
-	// Run helm linting
-	l := &helmLintSupport.Linter{
-		ChartDir: t.Chart.Path,
-	}
-	t.runDefaultRules(l)
-	t.runCustomRules(l)
+	// Construct linter
+	lint := helmAction.NewLint()
+	lint.Namespace = t.Options.Release.Namespace
+	lint.Strict = true
 
+	// Grab all subchart paths
+	paths := []string{t.Chart.Path}
+	filepath.Walk(filepath.Join(t.Chart.Path, "charts"), func(path string, info os.FileInfo, err error) error {
+		if info != nil && info.Name() == "Chart.yaml" {
+			paths = append(paths, filepath.Dir(path))
+		}
+		return nil
+	})
+
+	lintResult := lint.Run(paths, t.Values)
+
+	// Add additional custom lints
+	if err := t.validateValuesSchemaExists(); err != nil {
+		msg := helmLintSupport.NewMessage(helmLintSupport.WarningSev, "values.schema.json", err)
+		lintResult.Messages = append(lintResult.Messages, msg)
+	}
 	if opts.Rancher.Enabled {
-		t.runRancherRules(l)
+		if err := t.validateRancherAnnotations(); err != nil {
+			msg := helmLintSupport.NewMessage(helmLintSupport.ErrorSev, "Chart.yaml", err)
+			lintResult.Messages = append(lintResult.Messages, msg)
+		}
 	}
 
 	// log errors
 	errMap := map[string]error{}
-	for _, msg := range l.Messages {
+	for _, msg := range lintResult.Messages {
 		switch msg.Severity {
 		case helmLintSupport.InfoSev, helmLintSupport.WarningSev:
 			tT.Log(msg.Error())
