@@ -14,13 +14,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//go:embed testdata/header_format.md
+//go:embed formats/header_format.md
 var headerFmt string
 
-//go:embed testdata/raw_format.md
+//go:embed formats/raw_format.md
 var rawFmt string
 
-//go:embed testdata/output_format.md
+//go:embed formats/output_format.md
 var outputFmt string
 
 func TestGetOutputFsFromEnv(t *testing.T) {
