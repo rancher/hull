@@ -43,9 +43,6 @@ func Parse(manifest string) (*objectset.ObjectSet, error) {
 	if multiErr != nil {
 		return nil, multiErr
 	}
-	if os.Len() == 0 {
-		return nil, nil
-	}
 	return os, nil
 }
 
