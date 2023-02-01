@@ -1,0 +1,5 @@
+apiVersion: v2
+name: no-templates-with-subchart
+description: An chart without any contents and a subchart without contents
+version: 0.0.0
+appVersion: 0.0.0
