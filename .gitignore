@@ -8,7 +8,7 @@
 .vscode/
 .DS_Store
 output
-coverage
+/coverage
 *.out
 *.test
 /charts
