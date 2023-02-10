@@ -1,4 +1,4 @@
-//go:generate go run ./codegen.go
+//go:generate go run ./schema.go
 
 package main
 
