@@ -48,7 +48,7 @@ func TestCalculateCoverage(t *testing.T) {
 		}
 	}
 
-	expectedKeys := getAllKeysFromStructType(reflect.TypeOf(ExampleStruct{}))
+	expectedKeys := GetAllKeysFromStructType(reflect.TypeOf(ExampleStruct{}))
 	numExpectedKeys := float64(len(expectedKeys))
 
 	testCases := []struct {
@@ -441,7 +441,7 @@ func TestCalculateCoverage(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			coverage, report := CalculateCoverage(tc.Values, reflect.TypeOf(tc.Struct))
+			coverage, report := CalculateCoverageOnType(tc.Values, reflect.TypeOf(tc.Struct))
 			assert.Equal(t, tc.Coverage, coverage, report)
 		})
 	}
@@ -623,7 +623,7 @@ func TestGetSetKeysFromMapInterface(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			setKeyMap := getSetKeysFromMapInterface(tc.Values)
+			setKeyMap := GetSetKeysFromMapInterface(tc.Values)
 			expectedSetKeyMap := make(map[string]bool, len(tc.SetKeys))
 			for _, k := range tc.SetKeys {
 				expectedSetKeyMap[k] = true
@@ -1017,7 +1017,7 @@ func TestGetAllKeysFromStructType(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			keyMap := getAllKeysFromStructType(reflect.TypeOf(tc.Struct))
+			keyMap := GetAllKeysFromStructType(reflect.TypeOf(tc.Struct))
 			expectedKeyMap := make(map[string]bool, len(tc.Keys))
 			for _, k := range tc.Keys {
 				expectedKeyMap[k] = true

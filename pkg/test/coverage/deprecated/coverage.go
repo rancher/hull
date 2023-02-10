@@ -1,16 +1,16 @@
-package test
+package deprecated
 
 import (
 	"reflect"
 	"testing"
 
 	"github.com/aiyengar2/hull/pkg/chart"
-	"github.com/aiyengar2/hull/pkg/test/internal"
+	"github.com/aiyengar2/hull/pkg/test/coverage/internal"
 	helmValues "helm.sh/helm/v3/pkg/cli/values"
 )
 
-func Coverage(t *testing.T, valuesStruct interface{}, opts ...*chart.TemplateOptions) (float64, string) {
-	coverage, report, err := CoverageE(valuesStruct, opts...)
+func CoverageOnType(t *testing.T, valuesStruct interface{}, opts ...*chart.TemplateOptions) (float64, string) {
+	coverage, report, err := CoverageOnTypeE(valuesStruct, opts...)
 	if err != nil {
 		t.Error(err)
 		return 0, ""
@@ -18,7 +18,7 @@ func Coverage(t *testing.T, valuesStruct interface{}, opts ...*chart.TemplateOpt
 	return coverage, report
 }
 
-func CoverageE(valuesStruct interface{}, opts ...*chart.TemplateOptions) (float64, string, error) {
+func CoverageOnTypeE(valuesStruct interface{}, opts ...*chart.TemplateOptions) (float64, string, error) {
 	valueOpts := make([]helmValues.Options, len(opts))
 	for i, opt := range opts {
 		if opts == nil {
@@ -34,7 +34,7 @@ func CoverageE(valuesStruct interface{}, opts ...*chart.TemplateOptions) (float6
 	if err != nil {
 		return 0, "", err
 	}
-	coverage, report := internal.CalculateCoverage(values, reflect.TypeOf(valuesStruct))
+	coverage, report := internal.CalculateCoverageOnType(values, reflect.TypeOf(valuesStruct))
 	return coverage, report, nil
 }
 

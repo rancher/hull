@@ -7,6 +7,7 @@ import (
 	"github.com/aiyengar2/hull/pkg/checker"
 	"github.com/aiyengar2/hull/pkg/checker/resource/workloads"
 	"github.com/aiyengar2/hull/pkg/test"
+	"github.com/aiyengar2/hull/pkg/test/coverage/deprecated"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -69,7 +70,7 @@ func TestCoverage(t *testing.T) {
 	for _, c := range suite.Cases {
 		templateOptions = append(templateOptions, c.TemplateOptions)
 	}
-	coverage, report := test.Coverage(t, ValuesYaml{}, templateOptions...)
+	coverage, report := deprecated.CoverageOnType(t, ValuesYaml{}, templateOptions...)
 	if t.Failed() {
 		return
 	}

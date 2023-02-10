@@ -9,9 +9,9 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-func CalculateCoverage(values map[string]interface{}, valuesStructType reflect.Type) (float64, string) {
-	setKeys := getSetKeysFromMapInterface(values)
-	allKeys := getAllKeysFromStructType(valuesStructType)
+func CalculateCoverageOnType(values map[string]interface{}, valuesStructType reflect.Type) (float64, string) {
+	setKeys := GetSetKeysFromMapInterface(values)
+	allKeys := GetAllKeysFromStructType(valuesStructType)
 
 	numSetKeys := 0
 	var setKeySlice []string
@@ -38,7 +38,7 @@ func CalculateCoverage(values map[string]interface{}, valuesStructType reflect.T
 	return float64(numSetKeys) / float64(len(allKeys)), report
 }
 
-func getSetKeysFromMapInterface(values map[string]interface{}) map[string]bool {
+func GetSetKeysFromMapInterface(values map[string]interface{}) map[string]bool {
 	setKeys := make(map[string]bool)
 	if values == nil {
 		return setKeys
@@ -72,7 +72,7 @@ func getSetKeysFromMapInterface(values map[string]interface{}) map[string]bool {
 	return setKeys
 }
 
-func getAllKeysFromStructType(valuesStructType reflect.Type) map[string]bool {
+func GetAllKeysFromStructType(valuesStructType reflect.Type) map[string]bool {
 	allKeys := make(map[string]bool)
 	if len(valuesStructType.Name()) > 0 {
 		structName := valuesStructType.Name()

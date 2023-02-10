@@ -1,4 +1,4 @@
-package test
+package deprecated
 
 import (
 	"math/rand"
@@ -11,7 +11,7 @@ import (
 	helmValues "helm.sh/helm/v3/pkg/cli/values"
 )
 
-func TestCoverage(t *testing.T) {
+func TestCoverageOnType(t *testing.T) {
 	type ExampleStruct struct {
 		First struct {
 			Name int
@@ -96,13 +96,13 @@ func TestCoverage(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			if tc.ShouldThrowError {
 				fakeT := &testing.T{}
-				Coverage(fakeT, tc.Struct, tc.TemplateOptionsSlice...)
+				CoverageOnType(fakeT, tc.Struct, tc.TemplateOptionsSlice...)
 				if !fakeT.Failed() {
 					t.Error("expected error to be thrown")
 				}
 				return
 			}
-			coverage, report := Coverage(t, tc.Struct, tc.TemplateOptionsSlice...)
+			coverage, report := CoverageOnType(t, tc.Struct, tc.TemplateOptionsSlice...)
 
 			if !t.Failed() {
 				assert.Equal(t, tc.Coverage, coverage, report)
