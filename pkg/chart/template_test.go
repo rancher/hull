@@ -7,6 +7,7 @@ import (
 
 	"github.com/rancher/wrangler/pkg/objectset"
 	"github.com/stretchr/testify/assert"
+	helmValues "helm.sh/helm/v3/pkg/cli/values"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -215,6 +216,30 @@ func TestTemplateOptionsString(t *testing.T) {
 			Name:    "Nil",
 			Options: &TemplateOptions{},
 			String:  "helm template <path-to-chart>",
+		},
+		{
+			Name: "Custom Values Options",
+			Options: &TemplateOptions{
+				ValuesOptions: &helmValues.Options{
+					ValueFiles:   []string{"values.yaml"},
+					Values:       []string{"name=prod"},
+					StringValues: []string{"value=1234"},
+					FileValues:   []string{"myfile=hello"},
+				},
+			},
+			String: "helm template -f values.yaml --set name=prod --set-string value=1234 --set-file myfile=hello <path-to-chart>",
+		},
+		{
+			Name: "Custom Values Options With Multiple Values",
+			Options: &TemplateOptions{
+				ValuesOptions: &helmValues.Options{
+					ValueFiles:   []string{"values.yaml", "values-2.yaml"},
+					Values:       []string{"name=prod", "cluster=world"},
+					StringValues: []string{"value=1234", "hello=4321"},
+					FileValues:   []string{"myfile=hello", "myscript=world"},
+				},
+			},
+			String: "helm template -f values.yaml -f values-2.yaml --set name=prod --set cluster=world --set-string value=1234 --set-string hello=4321 --set-file myfile=hello --set-file myscript=world <path-to-chart>",
 		},
 		{
 			Name:    "Default",
