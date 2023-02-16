@@ -1,6 +1,6 @@
 module github.com/aiyengar2/hull
 
-go 1.17
+go 1.19
 
 replace (
 	k8s.io/api => k8s.io/api v0.24.2

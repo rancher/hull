@@ -1,6 +1,6 @@
 module github.com/aiyengar2/hull/examples
 
-go 1.17
+go 1.19
 
 replace github.com/aiyengar2/hull => ./..
 
