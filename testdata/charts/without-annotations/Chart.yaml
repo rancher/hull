@@ -1,0 +1,9 @@
+apiVersion: v2
+name: without-annotations
+description: Hull Example Chart
+version: 0.0.0
+appVersion: 0.0.0
+maintainers:
+- email: arvind.iyengar@suse.com
+  name: aiyengar2
+
