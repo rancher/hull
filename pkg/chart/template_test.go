@@ -2,6 +2,7 @@ package chart
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/rancher/wrangler/pkg/objectset"
@@ -207,42 +208,47 @@ func TestSetKubeVersion(t *testing.T) {
 func TestTemplateOptionsString(t *testing.T) {
 	testCases := []struct {
 		Name    string
-		Options TemplateOptions
+		Options *TemplateOptions
 		String  string
 	}{
 		{
 			Name:    "Nil",
-			Options: TemplateOptions{},
+			Options: &TemplateOptions{},
 			String:  "helm template <path-to-chart>",
 		},
 		{
 			Name:    "Default",
-			Options: *NewTemplateOptions("world", "hello"),
+			Options: NewTemplateOptions("world", "hello"),
 			String:  "helm template -n hello world <path-to-chart>",
 		},
 		{
 			Name:    "Default With KubeVersion",
-			Options: *NewTemplateOptions("world", "hello").SetKubeVersion("1.16.0"),
+			Options: NewTemplateOptions("world", "hello").SetKubeVersion("1.16.0"),
 			String:  "helm template -n hello --kube-version v1.16.0 world <path-to-chart>",
 		},
 		{
 			Name:    "Default With Set Value",
-			Options: *NewTemplateOptions("world", "hello").SetValue("rancher", "hull"),
+			Options: NewTemplateOptions("world", "hello").SetValue("rancher", "hull"),
 			String:  "helm template -n hello --set rancher=hull world <path-to-chart>",
 		},
 		{
 			Name:    "Default With Upgrade",
-			Options: *NewTemplateOptions("world", "hello").IsUpgrade(true),
+			Options: NewTemplateOptions("world", "hello").IsUpgrade(true),
 			String:  "helm template -n hello --is-upgrade world <path-to-chart>",
 		},
 		{
 			Name:    "Default Without Upgrade",
-			Options: *NewTemplateOptions("world", "hello").IsUpgrade(false),
+			Options: NewTemplateOptions("world", "hello").IsUpgrade(false),
 			String:  "helm template -n hello world <path-to-chart>",
 		},
 		{
 			Name:    "Default With All",
-			Options: *NewTemplateOptions("world", "hello").SetKubeVersion("1.16.0").SetValue("rancher", "hull").IsUpgrade(true),
+			Options: NewTemplateOptions("world", "hello").SetKubeVersion("1.16.0").SetValue("rancher", "hull").IsUpgrade(true),
+			String:  "helm template -n hello --is-upgrade --kube-version v1.16.0 --set rancher=hull world <path-to-chart>",
+		},
+		{
+			Name:    "Default With All",
+			Options: NewTemplateOptions("world", "hello").SetKubeVersion("1.16.0").SetValue("rancher", "hull").IsUpgrade(true),
 			String:  "helm template -n hello --is-upgrade --kube-version v1.16.0 --set rancher=hull world <path-to-chart>",
 		},
 	}
