@@ -2,9 +2,9 @@ module github.com/aiyengar2/hull/examples
 
 go 1.17
 
-replace (
-	github.com/aiyengar2/hull => ./..
+replace github.com/aiyengar2/hull => ./..
 
+replace (
 	k8s.io/api => k8s.io/api v0.24.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.24.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.24.2

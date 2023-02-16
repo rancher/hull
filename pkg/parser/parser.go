@@ -26,6 +26,10 @@ func Parse(manifest string) (*objectset.ObjectSet, error) {
 			if err == io.EOF {
 				break
 			}
+			if strings.HasPrefix(err.Error(), "error unmarshaling JSON: while decoding JSON: Object 'Kind' is missing in ") {
+				// not a valid kubernetes object, but some valid JSON
+				continue
+			}
 			multiErr = multierr.Append(err, err)
 			continue
 		}
@@ -38,9 +42,6 @@ func Parse(manifest string) (*objectset.ObjectSet, error) {
 	}
 	if multiErr != nil {
 		return nil, multiErr
-	}
-	if os.Len() == 0 {
-		return nil, nil
 	}
 	return os, nil
 }

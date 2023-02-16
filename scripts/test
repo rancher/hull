@@ -3,13 +3,6 @@ set -e
 
 cd $(dirname $0)/..
 
-for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
-    pushd ${module} 2>/dev/null 1>/dev/null
-    go mod download
-
-    popd 2>/dev/null 1>/dev/null
-done
-
 root_dir=$(pwd)
 for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
     echo "Running tests for MODULE='${module}'..."

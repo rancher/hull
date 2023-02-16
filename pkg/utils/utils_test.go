@@ -49,6 +49,12 @@ func TestGetPathFromModuleRoot(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
+			defer func() {
+				if err := os.Chdir(wd); err != nil {
+					t.Error(err)
+					return
+				}
+			}()
 			if err := os.Chdir(filepath.Join(wd, tc.FromDir)); err != nil {
 				t.Error(err)
 				return

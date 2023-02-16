@@ -67,7 +67,7 @@ func (w *outputWriter) SetOutputDir(outputDir string) {
 
 func (w *outputWriter) Write(out []byte) (n int, err error) {
 	if w.outputFs == nil {
-		return 0, nil
+		return len(out), nil
 	}
 
 	outputWriterLock.Lock()

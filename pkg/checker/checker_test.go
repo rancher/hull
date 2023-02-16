@@ -255,7 +255,7 @@ metadata:
 	})
 	t.Run("Bad String", func(t *testing.T) {
 		nilChecker, err := NewCheckerFromString("i am a bad string@@: ", "")
-		assert.NotNil(t, err)
+		assert.Nil(t, err)
 		assert.Nil(t, nilChecker)
 	})
 	t.Run("String With Only Document Separator", func(t *testing.T) {

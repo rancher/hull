@@ -110,11 +110,20 @@ func (t *template) yamlLint(tT *testing.T, templateFile string) {
 			cmd.String(),
 			raw,
 		)
-		w = io.MultiWriter(w, os.Stderr)
+		w = io.MultiWriter(w, testErrorWriter{tT})
 		if _, err := w.Write(out); err != nil {
 			tT.Error(err)
 		}
 	}
+}
+
+type testErrorWriter struct {
+	*testing.T
+}
+
+func (w testErrorWriter) Write(p []byte) (n int, err error) {
+	w.T.Error(string(p))
+	return len(p), nil
 }
 
 type HelmLintOptions struct {
