@@ -4,16 +4,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/aiyengar2/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	helmValues "helm.sh/helm/v3/pkg/cli/values"
 )
 
 func TestNewChart(t *testing.T) {
-	repoRoot, err := filepath.Abs(filepath.Join("..", ".."))
-	if err != nil {
-		t.Fatal("cannot find repository root at ../..")
-	}
-
 	testCases := []struct {
 		Name             string
 		ChartPath        string
@@ -21,22 +17,22 @@ func TestNewChart(t *testing.T) {
 	}{
 		{
 			Name:             "Valid Chart",
-			ChartPath:        filepath.Join("..", "..", "testdata", "charts", "example-chart"),
+			ChartPath:        utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart"),
 			ShouldThrowError: false,
 		},
 		{
 			Name:             "Valid Chart From Absolute Path",
-			ChartPath:        filepath.Join(repoRoot, "testdata", "charts", "example-chart"),
+			ChartPath:        utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart"),
 			ShouldThrowError: false,
 		},
 		{
 			Name:             "Invalid Chart",
-			ChartPath:        filepath.Join("..", "..", "testdata", "charts", "does-not-exist"),
+			ChartPath:        utils.MustGetPathFromModuleRoot("testdata", "charts", "does-not-exist"),
 			ShouldThrowError: true,
 		},
 		{
 			Name:             "Invalid Glob Path",
-			ChartPath:        filepath.Join("..", "..", "testdata", "charts", "*"),
+			ChartPath:        utils.MustGetPathFromModuleRoot("testdata", "charts", "*"),
 			ShouldThrowError: true,
 		},
 	}
@@ -66,9 +62,10 @@ func TestNewChart(t *testing.T) {
 }
 
 func TestRenderTemplate(t *testing.T) {
-	c, err := NewChart(filepath.Join("..", "..", "testdata", "charts", "example-chart"))
+	chartPath := utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema")
+	c, err := NewChart(chartPath)
 	if err != nil {
-		t.Errorf("unable to construct chart from chart path: %s", err)
+		t.Errorf("unable to construct chart from chart path %s: %s", chartPath, err)
 		return
 	}
 	if c == nil {
@@ -136,19 +133,19 @@ func TestSchemaMustMatchStruct(t *testing.T) {
 	}{
 		{
 			Name:      "Example Chart With Valid Schema Struct",
-			ChartPath: filepath.Join("..", "..", "testdata", "charts", "example-chart"),
-			Struct: struct {
-				Data map[string]interface{} `jsonschema:"description=Data to be inserted into a ConfigMap"`
-			}{},
-			ShouldThrowError: false,
-		},
-		{
-			Name:      "No Schema With Valid Schema Struct",
-			ChartPath: filepath.Join("..", "..", "testdata", "charts", "no-schema"),
+			ChartPath: utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart"),
 			Struct: struct {
 				Data map[string]interface{} `jsonschema:"description=Data to be inserted into a ConfigMap"`
 			}{},
 			ShouldThrowError: true,
+		},
+		{
+			Name:      "With Schema With Valid Schema Struct",
+			ChartPath: utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema"),
+			Struct: struct {
+				Data map[string]interface{} `jsonschema:"description=Data to be inserted into a ConfigMap"`
+			}{},
+			ShouldThrowError: false,
 		},
 	}
 	for _, tc := range testCases {

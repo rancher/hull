@@ -1,24 +1,24 @@
 package test
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/aiyengar2/hull/pkg/chart"
 	"github.com/aiyengar2/hull/pkg/checker"
+	"github.com/aiyengar2/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	defaultReleaseName = "example-chart"
+	defaultReleaseName = "with-schema"
 	defaultNamespace   = "default"
 )
 
 var (
-	chartPath = filepath.Join("..", "..", "testdata", "charts", "example-chart")
+	chartPath = utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema")
 )
 
-type ExampleChart struct {
+type WithSchema struct {
 	Data map[string]interface{} `jsonschema:"description=Data to be inserted into a ConfigMap"`
 }
 
@@ -40,10 +40,10 @@ func TestTest(t *testing.T) {
 			ShouldThrowError: true,
 		},
 		{
-			Name: "Default",
+			Name: "With Schema",
 			Suite: &Suite{
 				ChartPath:    chartPath,
-				ValuesStruct: &ExampleChart{},
+				ValuesStruct: &WithSchema{},
 				DefaultChecks: []checker.Check{
 					{
 						Name: "Noop Default",

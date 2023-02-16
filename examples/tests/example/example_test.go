@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	defaultReleaseName = "example-chart"
+	defaultReleaseName = "with-schema"
 	defaultNamespace   = "default"
 )
 

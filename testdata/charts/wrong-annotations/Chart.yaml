@@ -1,0 +1,11 @@
+apiVersion: v2
+name: wrong-annotations
+description: Hull Example Chart
+version: 0.0.0
+appVersion: 0.0.0
+annotations:
+  hello: world
+maintainers:
+- email: arvind.iyengar@suse.com
+  name: aiyengar2
+

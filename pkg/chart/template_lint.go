@@ -6,20 +6,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	multierr "github.com/hashicorp/go-multierror"
-	helmLintRules "helm.sh/helm/v3/pkg/lint/rules"
-	helmLintSupport "helm.sh/helm/v3/pkg/lint/support"
 )
-
-func (t *template) runDefaultRules(linter *helmLintSupport.Linter) {
-	helmLintRules.Chartfile(linter)
-	helmLintRules.ValuesWithOverrides(linter, t.Values)
-	helmLintRules.Templates(linter, t.Values, t.Options.Release.Namespace, true)
-	helmLintRules.Dependencies(linter)
-}
-
-func (t *template) runCustomRules(linter *helmLintSupport.Linter) {
-	linter.RunLinterRule(helmLintSupport.ErrorSev, "values.schema.json", t.validateValuesSchemaExists())
-}
 
 func (t *template) validateValuesSchemaExists() error {
 	if t.Chart.Schema == nil {
@@ -28,14 +15,14 @@ func (t *template) validateValuesSchemaExists() error {
 	return nil
 }
 
-func (t *template) runRancherRules(linter *helmLintSupport.Linter) {
-	linter.RunLinterRule(helmLintSupport.ErrorSev, "Chart.yaml", t.validateRancherAnnotations())
-}
-
 func (t *template) validateRancherAnnotations() error {
 	meta := t.Chart.Metadata
 	if meta.Annotations == nil {
 		return errors.New("missing required Rancher annotations: no annotations found")
+	}
+	if _, hasHiddenAnnotation := meta.Annotations["catalog.cattle.io/hidden"]; hasHiddenAnnotation {
+		// no need to check for annotations
+		return nil
 	}
 	annotations := meta.Annotations
 	var err error

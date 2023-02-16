@@ -1,0 +1,12 @@
+apiVersion: v2
+name: hidden-chart
+description: Hull Example Chart
+version: 0.0.0
+appVersion: 0.0.0
+annotations:
+  catalog.cattle.io/certified: rancher
+  catalog.cattle.io/hidden: "true"
+maintainers:
+- email: arvind.iyengar@suse.com
+  name: aiyengar2
+

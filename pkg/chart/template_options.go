@@ -27,7 +27,7 @@ type TemplateOptions struct {
 func (o *TemplateOptions) SetKubeVersion(version string) *TemplateOptions {
 	kubeVersion, err := helmChartUtil.ParseKubeVersion(version)
 	if err != nil {
-		return nil
+		panic(fmt.Errorf("invalid kubeVersion %s provided: %s", version, err))
 	}
 	if o.Capabilities == nil {
 		o.Capabilities = &helmChartUtil.Capabilities{}
@@ -115,16 +115,24 @@ func toValuesArgs(valOpts *helmValues.Options) string {
 	}
 	var args string
 	if len(valOpts.ValueFiles) > 0 {
-		args += fmt.Sprintf(" -f %s", strings.Join(valOpts.ValueFiles, ","))
+		for _, setArg := range valOpts.ValueFiles {
+			args += fmt.Sprintf(" -f %s", setArg)
+		}
 	}
 	if len(valOpts.Values) > 0 {
-		args += fmt.Sprintf(" --set %s", strings.Join(valOpts.Values, ","))
+		for _, setArg := range valOpts.Values {
+			args += fmt.Sprintf(" --set %s", setArg)
+		}
 	}
 	if len(valOpts.StringValues) > 0 {
-		args += fmt.Sprintf(" --set-string %s", strings.Join(valOpts.StringValues, ","))
+		for _, setArg := range valOpts.StringValues {
+			args += fmt.Sprintf(" --set-string %s", setArg)
+		}
 	}
 	if len(valOpts.FileValues) > 0 {
-		args += fmt.Sprintf(" --set-file %s", strings.Join(valOpts.FileValues, ","))
+		for _, setArg := range valOpts.FileValues {
+			args += fmt.Sprintf(" --set-file %s", setArg)
+		}
 	}
 	return strings.TrimPrefix(args, " ")
 }
