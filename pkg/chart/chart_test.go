@@ -137,7 +137,7 @@ func TestSchemaMustMatchStruct(t *testing.T) {
 			Struct: struct {
 				Data map[string]interface{} `jsonschema:"description=Data to be inserted into a ConfigMap"`
 			}{},
-			ShouldThrowError: false,
+			ShouldThrowError: true,
 		},
 		{
 			Name:      "With Schema With Valid Schema Struct",
