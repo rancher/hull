@@ -20,6 +20,10 @@ func (t *template) validateRancherAnnotations() error {
 	if meta.Annotations == nil {
 		return errors.New("missing required Rancher annotations: no annotations found")
 	}
+	if _, hasHiddenAnnotation := meta.Annotations["catalog.cattle.io/hidden"]; hasHiddenAnnotation {
+		// no need to check for annotations
+		return nil
+	}
 	annotations := meta.Annotations
 	var err error
 
