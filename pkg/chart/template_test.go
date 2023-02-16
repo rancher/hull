@@ -1,10 +1,10 @@
 package chart
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/aiyengar2/hull/pkg/utils"
 	"github.com/rancher/wrangler/pkg/objectset"
 	"github.com/stretchr/testify/assert"
 	helmValues "helm.sh/helm/v3/pkg/cli/values"
@@ -12,13 +12,13 @@ import (
 )
 
 var (
-	exampleChartPath = filepath.Join("..", "..", "testdata", "charts", "example-chart")
+	exampleChartPath            = utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart")
 )
 
 func getTemplate(t *testing.T, chartPath string, opts *TemplateOptions) Template {
 	c, err := NewChart(chartPath)
 	if err != nil {
-		t.Errorf("unable to construct chart from chart path: %s", err)
+		t.Errorf("unable to construct chart from chart path %s: %s", chartPath, err)
 		return nil
 	}
 	if c == nil {
@@ -75,7 +75,7 @@ func TestTemplate(t *testing.T) {
 	for _, tc := range testCases {
 		template := getTemplate(t, tc.ChartPath, tc.TemplateOptions)
 		if template == nil {
-			return
+			t.Fatalf("could not find template %s", tc.ChartPath)
 		}
 		assert.NotNil(t, template.GetChart())
 		assert.NotNil(t, template.GetOptions())

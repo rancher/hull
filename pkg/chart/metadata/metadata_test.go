@@ -1,14 +1,14 @@
 package metadata
 
 import (
-	"path/filepath"
 	"testing"
 
+	"github.com/aiyengar2/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMustGetAnnotation(t *testing.T) {
-	chartPath := filepath.Join("..", "..", "..", "testdata", "charts", "example-chart")
+	chartPath := utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart")
 
 	testCases := []struct {
 		Name          string
