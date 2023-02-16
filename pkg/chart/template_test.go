@@ -13,6 +13,12 @@ import (
 
 var (
 	exampleChartPath            = utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart")
+	withSchemaChartPath         = utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema")
+	withoutAnnotationsChartPath = utils.MustGetPathFromModuleRoot("testdata", "charts", "without-annotations")
+	hiddenChartPath             = utils.MustGetPathFromModuleRoot("testdata", "charts", "hidden-chart")
+	wrongAnnotationsChartPath   = utils.MustGetPathFromModuleRoot("testdata", "charts", "wrong-annotations")
+	wrongOSAnnotationChartPath  = utils.MustGetPathFromModuleRoot("testdata", "charts", "wrong-os-annotation")
+	invalidKubeConstraintPath   = utils.MustGetPathFromModuleRoot("testdata", "charts", "invalid-kube-constraint")
 )
 
 func getTemplate(t *testing.T, chartPath string, opts *TemplateOptions) Template {
@@ -282,5 +288,78 @@ func TestTemplateOptionsString(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			assert.Equal(t, tc.String, tc.Options.String())
 		})
+	}
+}
+
+func TestAdditionalLintChecks(t *testing.T) {
+	testCases := []struct {
+		Name                                 string
+		ChartPath                            string
+		ShouldFailValidateValuesSchemaExists bool
+		ShouldFailValidateRancherAnnotations bool
+	}{
+		{
+			Name:                                 "Example Chart",
+			ChartPath:                            exampleChartPath,
+			ShouldFailValidateValuesSchemaExists: true,
+		},
+		{
+			Name:      "With Schema",
+			ChartPath: withSchemaChartPath,
+		},
+		{
+			Name:                                 "Without Annotations",
+			ChartPath:                            withoutAnnotationsChartPath,
+			ShouldFailValidateValuesSchemaExists: true,
+			ShouldFailValidateRancherAnnotations: true,
+		},
+		{
+			Name:                                 "Hidden Chart",
+			ChartPath:                            hiddenChartPath,
+			ShouldFailValidateValuesSchemaExists: true,
+		},
+		{
+			Name:                                 "Wrong Annotations",
+			ChartPath:                            wrongAnnotationsChartPath,
+			ShouldFailValidateValuesSchemaExists: true,
+			ShouldFailValidateRancherAnnotations: true,
+		},
+		{
+			Name:                                 "Wrong OS Annotation",
+			ChartPath:                            wrongOSAnnotationChartPath,
+			ShouldFailValidateValuesSchemaExists: true,
+			ShouldFailValidateRancherAnnotations: true,
+		},
+		{
+			Name:                                 "Invalid Kube Constraint",
+			ChartPath:                            invalidKubeConstraintPath,
+			ShouldFailValidateValuesSchemaExists: true,
+			ShouldFailValidateRancherAnnotations: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		template := getTemplate(t, tc.ChartPath, nil).(*template)
+		if template == nil {
+			t.Fatalf("could not find template %s", tc.ChartPath)
+		}
+
+		var err error
+
+		err = template.validateValuesSchemaExists()
+		if err != nil {
+			assert.True(t, tc.ShouldFailValidateValuesSchemaExists, "unexpected error: %s", err)
+		}
+		if err == nil {
+			assert.False(t, tc.ShouldFailValidateValuesSchemaExists, "expected error to be thrown")
+		}
+
+		err = template.validateRancherAnnotations()
+		if err != nil {
+			assert.True(t, tc.ShouldFailValidateRancherAnnotations, "unexpected error: %s", err)
+		}
+		if err == nil {
+			assert.False(t, tc.ShouldFailValidateRancherAnnotations, "expected error to be thrown")
+		}
 	}
 }
