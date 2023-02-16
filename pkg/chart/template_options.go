@@ -27,7 +27,7 @@ type TemplateOptions struct {
 func (o *TemplateOptions) SetKubeVersion(version string) *TemplateOptions {
 	kubeVersion, err := helmChartUtil.ParseKubeVersion(version)
 	if err != nil {
-		return nil
+		panic(fmt.Errorf("invalid kubeVersion %s provided: %s", version, err))
 	}
 	if o.Capabilities == nil {
 		o.Capabilities = &helmChartUtil.Capabilities{}

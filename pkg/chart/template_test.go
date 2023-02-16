@@ -156,6 +156,54 @@ func TestCheck(t *testing.T) {
 	})
 }
 
+func TestSetKubeVersion(t *testing.T) {
+	testCases := []struct {
+		Name             string
+		Version          string
+		ShouldThrowError bool
+	}{
+		{
+			Name:    "Valid",
+			Version: "1.25.0",
+		},
+		{
+			Name:             "Invalid",
+			Version:          "1.25.",
+			ShouldThrowError: true,
+		},
+		{
+			Name:    "K3s",
+			Version: "v1.25.0-k3s1",
+		},
+		{
+			Name:    "RKE2",
+			Version: "v1.25.0+rke2r1",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			defer func() {
+				err := recover()
+				if err != nil {
+					assert.True(t, tc.ShouldThrowError, "unexpected error: %s", err)
+				}
+				if err == nil {
+					assert.False(t, tc.ShouldThrowError, "expected error to be thrown")
+				}
+			}()
+			opts := NewTemplateOptions("example-chart", "default").SetKubeVersion(tc.Version)
+			assert.NotNil(t, opts.Capabilities)
+			assert.NotNil(t, opts.Capabilities.KubeVersion)
+			version := tc.Version
+			if !strings.HasPrefix(version, "v") {
+				version = "v" + version
+			}
+			assert.Equal(t, opts.Capabilities.KubeVersion.Version, version)
+		})
+	}
+}
+
 func TestTemplateOptionsString(t *testing.T) {
 	testCases := []struct {
 		Name    string
