@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+if [[ -z ${MODULE} ]]; then
+    MODULE=./...
+fi
+
+mkdir -p coverage
+go test -count=1 -v ${MODULE} -covermode=count -coverpkg=${MODULE} -coverprofile coverage/coverage.out
+go tool cover -html coverage/coverage.out -o coverage/coverage.html
+echo ""
+echo "SUCCESS: Run 'open coverage/coverage.html' to see the results or refresh the page."
