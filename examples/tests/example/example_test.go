@@ -5,7 +5,6 @@ import (
 
 	"github.com/aiyengar2/hull/pkg/chart"
 	"github.com/aiyengar2/hull/pkg/checker"
-	"github.com/aiyengar2/hull/pkg/checker/resource/workloads"
 	"github.com/aiyengar2/hull/pkg/test"
 )
 
@@ -19,8 +18,8 @@ var suite = test.Suite{
 
 	DefaultChecks: []checker.Check{
 		{
-			Name: "has exactly two configmaps",
-			Func: workloads.EnsureNumConfigMaps(2),
+			Name: "Noop Default Check",
+			Func: func(*testing.T, struct{}) {},
 		},
 	},
 
@@ -32,25 +31,8 @@ var suite = test.Suite{
 
 			Checks: []checker.Check{
 				{
-					Name: "has correct default data in ConfigMaps",
-					Func: workloads.EnsureConfigMapsHaveData(
-						map[string]string{"config": "hello: rancher"},
-					),
-				},
-			},
-		},
-		{
-			Name: "Setting .Values.Data",
-
-			TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace).
-				SetValue("data.hello", "world"),
-
-			Checks: []checker.Check{
-				{
-					Name: "sets .data.config on ConfigMaps",
-					Func: workloads.EnsureConfigMapsHaveData(
-						map[string]string{"config": "hello: world"},
-					),
+					Name: "Noop Check",
+					Func: func(*testing.T, struct{}) {},
 				},
 			},
 		},

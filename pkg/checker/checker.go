@@ -6,11 +6,6 @@ import (
 	"github.com/aiyengar2/hull/pkg/checker/internal"
 	"github.com/aiyengar2/hull/pkg/parser"
 	"github.com/rancher/wrangler/pkg/objectset"
-	"k8s.io/apimachinery/pkg/runtime"
-)
-
-var (
-	Scheme = runtime.NewScheme()
 )
 
 type Checker interface {
