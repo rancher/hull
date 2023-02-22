@@ -9,7 +9,6 @@ import (
 
 type Suite struct {
 	ChartPath     string
-	ValuesStruct  interface{}
 	DefaultChecks []checker.Check
 	Cases         []Case
 }
@@ -46,17 +45,11 @@ type Case struct {
 
 func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 	opts = opts.setDefaults()
-	if s.ValuesStruct == nil {
-		s.ValuesStruct = struct{}{}
-	}
 	c, err := chart.NewChart(s.ChartPath)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	t.Run("SchemaMustMatchStruct", func(t *testing.T) {
-		c.SchemaMustMatchStruct(t, s.ValuesStruct)
-	})
 	for _, tc := range s.Cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			template, err := c.RenderTemplate(tc.TemplateOptions)

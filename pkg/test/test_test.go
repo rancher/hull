@@ -18,10 +18,6 @@ var (
 	chartPath = utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema")
 )
 
-type WithSchema struct {
-	Data map[string]interface{} `jsonschema:"description=Data to be inserted into a ConfigMap"`
-}
-
 // convert into jsonschema to validate values.schema.json contents
 // verify that template values can be marshalled into a struct of this type
 // define coverage based on the number of fields that are touched in the struct
@@ -42,8 +38,7 @@ func TestTest(t *testing.T) {
 		{
 			Name: "With Schema",
 			Suite: &Suite{
-				ChartPath:    chartPath,
-				ValuesStruct: &WithSchema{},
+				ChartPath: chartPath,
 				DefaultChecks: []checker.Check{
 					{
 						Name: "Noop Default",

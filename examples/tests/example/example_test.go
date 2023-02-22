@@ -7,9 +7,6 @@ import (
 	"github.com/aiyengar2/hull/pkg/checker"
 	"github.com/aiyengar2/hull/pkg/checker/resource/workloads"
 	"github.com/aiyengar2/hull/pkg/test"
-	"github.com/aiyengar2/hull/pkg/test/coverage/deprecated"
-
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -18,8 +15,7 @@ var (
 )
 
 var suite = test.Suite{
-	ChartPath:    ChartPath,
-	ValuesStruct: &ValuesYaml{},
+	ChartPath: ChartPath,
 
 	DefaultChecks: []checker.Check{
 		{
@@ -63,16 +59,4 @@ var suite = test.Suite{
 
 func TestChart(t *testing.T) {
 	suite.Run(t, test.GetRancherOptions())
-}
-
-func TestCoverage(t *testing.T) {
-	templateOptions := []*chart.TemplateOptions{}
-	for _, c := range suite.Cases {
-		templateOptions = append(templateOptions, c.TemplateOptions)
-	}
-	coverage, report := deprecated.CoverageOnType(t, ValuesYaml{}, templateOptions...)
-	if t.Failed() {
-		return
-	}
-	assert.Equal(t, 1.00, coverage, report)
 }
