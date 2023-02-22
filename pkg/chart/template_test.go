@@ -42,9 +42,14 @@ func getTemplate(t *testing.T, chartPath string, opts *TemplateOptions) Template
 func TestTemplate(t *testing.T) {
 	// NOTE: should be changed if we add more files to the example-chart
 	filesInExampleChart := []string{
-		"configmap.yaml",
-		"NOTES.txt",
+		"templates/NOTES.txt",
+		"templates/clusterrole.yaml",
+		"templates/deployment.yaml",
+		"templates/hardened.yaml",
+		"templates/psp.yaml",
+		"templates/rbac.yaml",
 	}
+
 	testCases := []struct {
 		Name               string
 		ChartPath          string
@@ -86,7 +91,7 @@ func TestTemplate(t *testing.T) {
 		assert.NotNil(t, template.GetChart())
 		assert.NotNil(t, template.GetOptions())
 		assert.NotNil(t, template.GetFiles())
-		assert.Equal(t, tc.NumExpectedFiles, len(template.GetFiles()))
+		assert.Equal(t, tc.NumExpectedFiles, len(template.GetFiles()), "expected %s, found %s", filesInExampleChart, template.GetFiles())
 		assert.NotNil(t, template.GetObjectSets())
 		assert.NotNil(t, template.GetValues())
 
