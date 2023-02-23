@@ -17,10 +17,11 @@ func TestMustProduceJSONSchemas(t *testing.T) {
 			t.Error(err)
 		}
 	}()
+	chartPath := utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema")
 	MustProduceJSONSchemas([]JSONSchemaGenerateArg{
 		{
 			ValuesStruct: ValuesYaml{},
-			ChartPath:    utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema"),
+			ChartPath:    chartPath,
 		},
 	})
 }
