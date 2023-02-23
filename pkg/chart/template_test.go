@@ -103,7 +103,7 @@ func TestTemplate(t *testing.T) {
 		template.HelmLint(fakeT, tc.HelmLintOptions)
 		assert.Equal(t, tc.ShouldFailHelmLint, fakeT.Failed())
 
-		template.Check(t, nil, func(*testing.T, struct{}) {})
+		template.Check(t, func(*testing.T, struct{}) {})
 	}
 }
 
@@ -164,7 +164,7 @@ func TestCheck(t *testing.T) {
 	testTemplate.ObjectSets = nil
 	t.Run("Should pass on a bad YAML file", func(t *testing.T) {
 		fakeT := &testing.T{}
-		testTemplate.Check(fakeT, nil, struct{}{})
+		testTemplate.Check(fakeT, struct{}{})
 		assert.False(t, fakeT.Failed())
 	})
 }

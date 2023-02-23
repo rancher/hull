@@ -63,12 +63,12 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 			t.Run("YamlLint", template.YamlLint)
 			for _, check := range s.DefaultChecks {
 				t.Run(check.Name, func(t *testing.T) {
-					template.Check(t, check.Options, check.Func)
+					template.Check(t, check.Func)
 				})
 			}
 			for _, check := range tc.Checks {
 				t.Run(check.Name, func(t *testing.T) {
-					template.Check(t, check.Options, check.Func)
+					template.Check(t, check.Func)
 				})
 			}
 		})

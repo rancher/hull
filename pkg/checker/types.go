@@ -1,13 +1,8 @@
 package checker
 
 type Check struct {
-	Name    string
-	Options *Options
-	Func    interface{}
-}
-
-type Options struct {
-	PerTemplateManifest bool
+	Name string
+	Func interface{}
 }
 
 type CheckFunc interface{}

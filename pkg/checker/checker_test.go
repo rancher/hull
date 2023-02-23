@@ -173,22 +173,12 @@ metadata:
 				return
 			}
 
-			t.Run("Passes Nil Options Check", func(t *testing.T) {
-				uncastChecker.Check(t, nil, func(*testing.T, struct{}) {})
-			})
-
-			t.Run("Passes Default Options Check", func(t *testing.T) {
-				uncastChecker.Check(t, &Options{}, func(*testing.T, struct{}) {})
-			})
-
 			t.Run("Passes Nil Function Check", func(t *testing.T) {
-				uncastChecker.Check(t, &Options{}, nil)
+				uncastChecker.Check(t, nil)
 			})
 
-			t.Run("Passes PerTemplateManifest Options Check", func(t *testing.T) {
-				uncastChecker.Check(t, &Options{
-					PerTemplateManifest: true,
-				}, func(*testing.T, struct{}) {})
+			t.Run("Passes Function Check", func(t *testing.T) {
+				uncastChecker.Check(t, func(*testing.T, struct{}) {})
 			})
 
 			c, ok := uncastChecker.(*checker)
@@ -287,16 +277,5 @@ metadata:
 		nilChecker, err := NewCheckerFromString("", "")
 		assert.Nil(t, err)
 		assert.Nil(t, nilChecker)
-	})
-	t.Run("Check PerTemplateManifest Without Other Templates", func(t *testing.T) {
-		checker, err := NewCheckerFromString(exampleYamlString1, "")
-		assert.Nil(t, err)
-		assert.NotNil(t, checker)
-
-		fakeT := &testing.T{}
-		checker.Check(fakeT, &Options{
-			PerTemplateManifest: true,
-		}, func(*testing.T, struct{}) {})
-		assert.False(t, fakeT.Failed())
 	})
 }

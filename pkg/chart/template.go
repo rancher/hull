@@ -206,7 +206,7 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 	}
 }
 
-func (t *template) Check(tT *testing.T, opts *checker.Options, objStructFunc checker.CheckFunc) {
+func (t *template) Check(tT *testing.T, objStructFunc checker.CheckFunc) {
 	if t.ObjectSets == nil {
 		return
 	}
@@ -215,5 +215,5 @@ func (t *template) Check(tT *testing.T, opts *checker.Options, objStructFunc che
 		tT.Error(err)
 		return
 	}
-	check.Check(tT, opts, objStructFunc)
+	check.Check(tT, objStructFunc)
 }
