@@ -4,13 +4,18 @@ import (
 	"testing"
 
 	"github.com/aiyengar2/hull/pkg/chart"
-	"github.com/aiyengar2/hull/pkg/checker"
 )
 
 type Suite struct {
-	ChartPath     string
-	DefaultChecks []checker.Check
-	Cases         []Case
+	ChartPath      string
+	TemplateChecks []TemplateCheck
+	Cases          []Case
+}
+
+type Case struct {
+	Name            string
+	TemplateOptions *chart.TemplateOptions
+	ValueChecks     []ValueCheck
 }
 
 func GetRancherOptions() *SuiteOptions {
@@ -37,12 +42,6 @@ func (o *SuiteOptions) setDefaults() *SuiteOptions {
 	return o
 }
 
-type Case struct {
-	Name            string
-	TemplateOptions *chart.TemplateOptions
-	Checks          []checker.Check
-}
-
 func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 	opts = opts.setDefaults()
 	c, err := chart.NewChart(s.ChartPath)
@@ -61,12 +60,22 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 				template.HelmLint(t, opts.HelmLint)
 			})
 			t.Run("YamlLint", template.YamlLint)
-			for _, check := range s.DefaultChecks {
+			for _, check := range s.TemplateChecks {
+				// skip cases if necessary
+				var skip bool
+				for _, omitCase := range check.OmitCases {
+					if tc.Name == omitCase {
+						skip = true
+					}
+				}
+				if skip {
+					continue
+				}
 				t.Run(check.Name, func(t *testing.T) {
 					template.Check(t, check.Func)
 				})
 			}
-			for _, check := range tc.Checks {
+			for _, check := range tc.ValueChecks {
 				t.Run(check.Name, func(t *testing.T) {
 					template.Check(t, check.Func)
 				})

@@ -22,7 +22,7 @@ var (
 var suite = test.Suite{
 	ChartPath: ChartPath,
 
-	DefaultChecks: []checker.Check{
+	TemplateChecks: []test.TemplateCheck{
 		{
 			Name: "All Deployments Have ServiceAccount",
 			Func: checker.NewCheckFunc(
@@ -70,15 +70,13 @@ var suite = test.Suite{
 			Name: "Using Defaults",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace),
-
-			Checks: []checker.Check{},
 		},
 		{
 			Name: "Setting .Values.args[0] to --debug",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).SetValue("args[0]", "--debug"),
 
-			Checks: []checker.Check{
+			ValueChecks: []test.ValueCheck{
 				{
 					Name: "Passes --debug Flag To Deployment",
 					Func: checker.NewCheckFunc(
