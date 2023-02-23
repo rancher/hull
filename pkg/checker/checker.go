@@ -8,6 +8,8 @@ import (
 	"github.com/rancher/wrangler/pkg/objectset"
 )
 
+type CheckFunc interface{}
+
 type Checker interface {
 	Check(t *testing.T, objStructFunc CheckFunc)
 }
