@@ -22,7 +22,7 @@ var (
 // verify that template values can be marshalled into a struct of this type
 // define coverage based on the number of fields that are touched in the struct
 
-func TestTest(t *testing.T) {
+func TestRun(t *testing.T) {
 	testCases := []struct {
 		Name             string
 		Suite            *Suite
