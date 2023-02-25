@@ -15,4 +15,8 @@ type TemplateCheck struct {
 type ValueCheck struct {
 	Name string
 	Func checker.CheckFunc
+
+	// Covers is a list of file globs whose objects are covered by this template check
+	// This is used for coverage to be able to identify if the logic in certain files has been checked
+	Covers []string
 }

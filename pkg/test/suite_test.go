@@ -16,7 +16,9 @@ const (
 )
 
 var (
-	chartPath = utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart")
+	chartPath        = utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart")
+	withSchemaPath   = utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema")
+	badTemplatesPath = utils.MustGetPathFromModuleRoot("testdata", "charts", "bad-templates")
 )
 
 // convert into jsonschema to validate values.schema.json contents
@@ -30,9 +32,16 @@ func TestRun(t *testing.T) {
 		ShouldThrowError bool
 	}{
 		{
-			Name: "Invalid Chart",
+			Name: "No Chart",
 			Suite: &Suite{
 				ChartPath: "",
+			},
+			ShouldThrowError: true,
+		},
+		{
+			Name: "Bad Templates",
+			Suite: &Suite{
+				ChartPath: badTemplatesPath,
 			},
 			ShouldThrowError: true,
 		},
@@ -64,15 +73,48 @@ func TestRun(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
+			opts := &SuiteOptions{
+				Coverage: CoverageOptions{
+					Disabled: true,
+				},
+			}
 			if !tc.ShouldThrowError {
-				tc.Suite.Run(t, nil)
+				tc.Suite.Run(t, opts)
 				return
 			}
 			fakeT := &testing.T{}
-			tc.Suite.Run(fakeT, nil)
+			tc.Suite.Run(fakeT, opts)
 			assert.True(t, fakeT.Failed(), "expected error to be thrown")
 		})
 	}
+
+	t.Run("Full Coverage", func(t *testing.T) {
+		suite := &Suite{
+			ChartPath: withSchemaPath,
+			Cases: []Case{
+				{
+					Name:            "Using Defaults",
+					TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace),
+				},
+				{
+					Name:            "Set Data",
+					TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace).SetValue("data.hello", "world"),
+					ValueChecks: []ValueCheck{
+						{
+							Name:   "Has Data Overridden",
+							Covers: []string{"templates/configmap.yaml"},
+							Func:   func(*testing.T, struct{}) {},
+						},
+					},
+				},
+			},
+		}
+		suite.Run(t, &SuiteOptions{
+			Coverage: CoverageOptions{
+				Disabled: false,
+			},
+		})
+	})
 
 	t.Run("OmitCases", func(t *testing.T) {
 		visitedTests := map[string]bool{}
@@ -112,7 +154,12 @@ func TestRun(t *testing.T) {
 				},
 			},
 		}
-		suite.Run(t, nil)
+		opts := &SuiteOptions{
+			Coverage: CoverageOptions{
+				Disabled: true,
+			},
+		}
+		suite.Run(t, opts)
 		var visitedTestsSlice []string
 		for visitedTest := range visitedTests {
 			visitedTestsSlice = append(visitedTestsSlice, visitedTest)

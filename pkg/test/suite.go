@@ -4,6 +4,9 @@ import (
 	"testing"
 
 	"github.com/aiyengar2/hull/pkg/chart"
+	"github.com/aiyengar2/hull/pkg/test/coverage"
+	"github.com/aiyengar2/hull/pkg/tpl"
+	"github.com/stretchr/testify/assert"
 )
 
 type Suite struct {
@@ -30,6 +33,12 @@ func GetRancherOptions() *SuiteOptions {
 
 type SuiteOptions struct {
 	HelmLint *chart.HelmLintOptions
+	Coverage CoverageOptions
+}
+
+type CoverageOptions struct {
+	IncludeSubcharts bool
+	Disabled         bool
 }
 
 func (o *SuiteOptions) setDefaults() *SuiteOptions {
@@ -49,11 +58,21 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 		t.Error(err)
 		return
 	}
+	templateUsage, err := tpl.CollectTemplateUsage(c)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	assert.NotNil(t, templateUsage)
+	if t.Failed() {
+		return
+	}
+	coverageTracker := coverage.NewTracker(templateUsage, opts.Coverage.IncludeSubcharts)
 	for _, tc := range s.Cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			template, err := c.RenderTemplate(tc.TemplateOptions)
 			if err != nil {
-				t.Error(err)
+				t.Errorf("failed to render template: %s", err)
 				return
 			}
 			t.Run("HelmLint", func(t *testing.T) {
@@ -79,7 +98,21 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 				t.Run(check.Name, func(t *testing.T) {
 					template.Check(t, check.Func)
 				})
+				if err := coverageTracker.Record(tc.TemplateOptions, check.Covers); err != nil {
+					t.Errorf("failed to track coverage: %s", err)
+					// do not fail out, you should still continue with other checks
+				}
 			}
 		})
 	}
+	if opts.Coverage.Disabled {
+		return
+	}
+	t.Run("Coverage", func(t *testing.T) {
+		coverage, report := coverageTracker.CalculateCoverage()
+		assert.Equal(t, 1.00, coverage, report)
+		if err := templateUsage.GetWarnings(); err != nil {
+			t.Log(err)
+		}
+	})
 }

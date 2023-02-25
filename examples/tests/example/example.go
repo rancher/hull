@@ -79,6 +79,9 @@ var suite = test.Suite{
 			ValueChecks: []test.ValueCheck{
 				{
 					Name: "Passes --debug Flag To Deployment",
+					Covers: []string{
+						"templates/deployment.yaml",
+					},
 					Func: checker.NewCheckFunc(
 						checker.NewChainedCheckFunc(func(tc *checker.TestContext, deployments []*appsv1.Deployment) error {
 							for _, deployment := range deployments {
