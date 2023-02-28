@@ -1,22 +1,18 @@
-FROM registry.suse.com/bci/golang:1.17
+FROM registry.suse.com/bci/golang:1.19
 
 ARG DAPPER_HOST_ARCH
 ENV ARCH $DAPPER_HOST_ARCH
 
 RUN zypper -n install git docker vim less file curl wget
-RUN go get golang.org/x/tools/cmd/goimports
+RUN go install golang.org/x/tools/cmd/goimports@latest
 RUN if [ "${ARCH}" == "amd64" ]; then \
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.49.0; \
     fi
 
 # # Install Helm
-ARG helm_version=v3.9.2
+ARG helm_version=v3.9.3
 LABEL helm_version=${helm_version}
-RUN curl -LO "https://get.helm.sh/helm-${helm_version}-linux-amd64.tar.gz" \
-    && mkdir -p "/usr/local/helm-${helm_version}" \
-    && tar -xzf "helm-${helm_version}-linux-amd64.tar.gz" -C "/usr/local/helm-${helm_version}" \
-    && ln -s "/usr/local/helm-${helm_version}/linux-amd64/helm" /usr/local/bin/helm \
-    && rm -f "helm-${helm_version}-linux-amd64.tar.gz"
+RUN curl -sL https://get.helm.sh/helm-${helm_version}-linux-${ARCH}.tar.gz | tar xvzf - -C /usr/local/bin --strip-components=1
 
 ###
 
