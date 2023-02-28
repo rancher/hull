@@ -17,7 +17,7 @@ const (
 
 var (
 	chartPath        = utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart")
-	withSchemaPath   = utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema")
+	simpleChartPath  = utils.MustGetPathFromModuleRoot("testdata", "charts", "simple-chart")
 	badTemplatesPath = utils.MustGetPathFromModuleRoot("testdata", "charts", "bad-templates")
 )
 
@@ -90,7 +90,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("Full Coverage", func(t *testing.T) {
 		suite := &Suite{
-			ChartPath: withSchemaPath,
+			ChartPath: simpleChartPath,
 			Cases: []Case{
 				{
 					Name:            "Using Defaults",

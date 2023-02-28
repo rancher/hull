@@ -62,7 +62,7 @@ func TestNewChart(t *testing.T) {
 }
 
 func TestRenderTemplate(t *testing.T) {
-	chartPath := utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema")
+	chartPath := utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart")
 	c, err := NewChart(chartPath)
 	if err != nil {
 		t.Errorf("unable to construct chart from chart path %s: %s", chartPath, err)

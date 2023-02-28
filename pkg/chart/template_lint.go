@@ -8,13 +8,6 @@ import (
 	multierr "github.com/hashicorp/go-multierror"
 )
 
-func (t *template) validateValuesSchemaExists() error {
-	if t.Chart.Schema == nil {
-		return errors.New("no values.schema.json found")
-	}
-	return nil
-}
-
 func (t *template) validateRancherAnnotations() error {
 	meta := t.Chart.Metadata
 	if meta.Annotations == nil {

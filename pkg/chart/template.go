@@ -156,10 +156,6 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 	lintResult := lint.Run(paths, t.Values)
 
 	// Add additional custom lints
-	if err := t.validateValuesSchemaExists(); err != nil {
-		msg := helmLintSupport.NewMessage(helmLintSupport.WarningSev, "values.schema.json", err)
-		lintResult.Messages = append(lintResult.Messages, msg)
-	}
 	if opts.Rancher.Enabled {
 		if err := t.validateRancherAnnotations(); err != nil {
 			msg := helmLintSupport.NewMessage(helmLintSupport.ErrorSev, "Chart.yaml", err)
