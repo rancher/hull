@@ -156,10 +156,6 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 	lintResult := lint.Run(paths, t.Values)
 
 	// Add additional custom lints
-	if err := t.validateValuesSchemaExists(); err != nil {
-		msg := helmLintSupport.NewMessage(helmLintSupport.WarningSev, "values.schema.json", err)
-		lintResult.Messages = append(lintResult.Messages, msg)
-	}
 	if opts.Rancher.Enabled {
 		if err := t.validateRancherAnnotations(); err != nil {
 			msg := helmLintSupport.NewMessage(helmLintSupport.ErrorSev, "Chart.yaml", err)
@@ -206,7 +202,7 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 	}
 }
 
-func (t *template) Check(tT *testing.T, opts *checker.Options, objStructFunc checker.CheckFunc) {
+func (t *template) Check(tT *testing.T, objStructFunc checker.CheckFunc) {
 	if t.ObjectSets == nil {
 		return
 	}
@@ -215,5 +211,5 @@ func (t *template) Check(tT *testing.T, opts *checker.Options, objStructFunc che
 		tT.Error(err)
 		return
 	}
-	check.Check(tT, opts, objStructFunc)
+	check.Check(tT, objStructFunc)
 }

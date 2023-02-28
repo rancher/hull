@@ -6,15 +6,12 @@ import (
 	"github.com/aiyengar2/hull/pkg/checker/internal"
 	"github.com/aiyengar2/hull/pkg/parser"
 	"github.com/rancher/wrangler/pkg/objectset"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var (
-	Scheme = runtime.NewScheme()
-)
+type CheckFunc interface{}
 
 type Checker interface {
-	Check(t *testing.T, opts *Options, objStructFunc CheckFunc)
+	Check(t *testing.T, objStructFunc CheckFunc)
 }
 
 func NewChecker(osMap map[string]*objectset.ObjectSet) (Checker, error) {
@@ -72,26 +69,12 @@ type checker struct {
 	ObjectSets map[string]*objectset.ObjectSet
 }
 
-func (c *checker) Check(t *testing.T, opts *Options, objStructFunc CheckFunc) {
+func (c *checker) Check(t *testing.T, objStructFunc CheckFunc) {
 	if objStructFunc == nil {
 		return
-	}
-	if opts == nil {
-		opts = &Options{}
 	}
 	doFunc := internal.WrapFunc(objStructFunc, &internal.ParseOptions{
 		Scheme: Scheme,
 	})
-	if !opts.PerTemplateManifest || len(c.ObjectSets) == 1 {
-		doFunc(t, c.ObjectSets[""].All())
-		return
-	}
-	for path, os := range c.ObjectSets {
-		if path == "" {
-			continue
-		}
-		t.Run(path, func(t *testing.T) {
-			doFunc(t, os.All())
-		})
-	}
+	doFunc(t, c.ObjectSets[""].All())
 }

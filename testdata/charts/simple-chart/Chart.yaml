@@ -1,5 +1,5 @@
 apiVersion: v2
-name: wrong-annotations
+name: simple-chart
 description: Hull Example Chart
 version: 0.0.0
 appVersion: 0.0.0
@@ -8,9 +8,9 @@ annotations:
   catalog.cattle.io/display-name: With Schema
   catalog.cattle.io/kube-version: '>=1.16.0-0'
   catalog.cattle.io/namespace: cattle-hull-system
-  catalog.cattle.io/permits-os: linux,windows,rancher
+  catalog.cattle.io/permits-os: linux,windows
   catalog.cattle.io/rancher-version: '>= 2.7.0-0 <=2.7.99-0'
-  catalog.cattle.io/release-name: wrong-annotations
+  catalog.cattle.io/release-name: simple-chart
   catalog.cattle.io/os: linux,windows
 maintainers:
 - email: arvind.iyengar@suse.com

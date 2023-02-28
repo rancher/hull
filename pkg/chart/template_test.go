@@ -13,7 +13,6 @@ import (
 
 var (
 	exampleChartPath            = utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart")
-	withSchemaChartPath         = utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema")
 	withoutAnnotationsChartPath = utils.MustGetPathFromModuleRoot("testdata", "charts", "without-annotations")
 	hiddenChartPath             = utils.MustGetPathFromModuleRoot("testdata", "charts", "hidden-chart")
 	wrongAnnotationsChartPath   = utils.MustGetPathFromModuleRoot("testdata", "charts", "wrong-annotations")
@@ -103,7 +102,7 @@ func TestTemplate(t *testing.T) {
 		template.HelmLint(fakeT, tc.HelmLintOptions)
 		assert.Equal(t, tc.ShouldFailHelmLint, fakeT.Failed())
 
-		template.Check(t, nil, func(*testing.T, struct{}) {})
+		template.Check(t, func(*testing.T, struct{}) {})
 	}
 }
 
@@ -164,7 +163,7 @@ func TestCheck(t *testing.T) {
 	testTemplate.ObjectSets = nil
 	t.Run("Should pass on a bad YAML file", func(t *testing.T) {
 		fakeT := &testing.T{}
-		testTemplate.Check(fakeT, nil, struct{}{})
+		testTemplate.Check(fakeT, struct{}{})
 		assert.False(t, fakeT.Failed())
 	})
 }
@@ -300,45 +299,34 @@ func TestAdditionalLintChecks(t *testing.T) {
 	testCases := []struct {
 		Name                                 string
 		ChartPath                            string
-		ShouldFailValidateValuesSchemaExists bool
 		ShouldFailValidateRancherAnnotations bool
 	}{
 		{
-			Name:                                 "Example Chart",
-			ChartPath:                            exampleChartPath,
-			ShouldFailValidateValuesSchemaExists: true,
-		},
-		{
-			Name:      "With Schema",
-			ChartPath: withSchemaChartPath,
+			Name:      "Example Chart",
+			ChartPath: exampleChartPath,
 		},
 		{
 			Name:                                 "Without Annotations",
 			ChartPath:                            withoutAnnotationsChartPath,
-			ShouldFailValidateValuesSchemaExists: true,
 			ShouldFailValidateRancherAnnotations: true,
 		},
 		{
-			Name:                                 "Hidden Chart",
-			ChartPath:                            hiddenChartPath,
-			ShouldFailValidateValuesSchemaExists: true,
+			Name:      "Hidden Chart",
+			ChartPath: hiddenChartPath,
 		},
 		{
 			Name:                                 "Wrong Annotations",
 			ChartPath:                            wrongAnnotationsChartPath,
-			ShouldFailValidateValuesSchemaExists: true,
 			ShouldFailValidateRancherAnnotations: true,
 		},
 		{
 			Name:                                 "Wrong OS Annotation",
 			ChartPath:                            wrongOSAnnotationChartPath,
-			ShouldFailValidateValuesSchemaExists: true,
 			ShouldFailValidateRancherAnnotations: true,
 		},
 		{
 			Name:                                 "Invalid Kube Constraint",
 			ChartPath:                            invalidKubeConstraintPath,
-			ShouldFailValidateValuesSchemaExists: true,
 			ShouldFailValidateRancherAnnotations: true,
 		},
 	}
@@ -350,14 +338,6 @@ func TestAdditionalLintChecks(t *testing.T) {
 		}
 
 		var err error
-
-		err = template.validateValuesSchemaExists()
-		if err != nil {
-			assert.True(t, tc.ShouldFailValidateValuesSchemaExists, "unexpected error: %s", err)
-		}
-		if err == nil {
-			assert.False(t, tc.ShouldFailValidateValuesSchemaExists, "expected error to be thrown")
-		}
 
 		err = template.validateRancherAnnotations()
 		if err != nil {

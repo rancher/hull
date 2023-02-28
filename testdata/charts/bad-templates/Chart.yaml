@@ -1,0 +1,5 @@
+apiVersion: v2
+name: bad-templates
+description: An invalid chart with bad templates
+version: 0.0.0
+appVersion: 0.0.0

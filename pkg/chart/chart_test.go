@@ -62,7 +62,7 @@ func TestNewChart(t *testing.T) {
 }
 
 func TestRenderTemplate(t *testing.T) {
-	chartPath := utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema")
+	chartPath := utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart")
 	c, err := NewChart(chartPath)
 	if err != nil {
 		t.Errorf("unable to construct chart from chart path %s: %s", chartPath, err)
@@ -95,16 +95,6 @@ func TestRenderTemplate(t *testing.T) {
 			},
 			ShouldThrowError: true,
 		},
-		{
-			Name:  "Does Not Match Schema",
-			Chart: c,
-			Opts: &TemplateOptions{
-				ValuesOptions: &helmValues.Options{
-					Values: []string{"hello=hi"},
-				},
-			},
-			ShouldThrowError: true,
-		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
@@ -120,54 +110,6 @@ func TestRenderTemplate(t *testing.T) {
 				return
 			}
 			assert.NotNil(t, template)
-		})
-	}
-}
-
-func TestSchemaMustMatchStruct(t *testing.T) {
-	testCases := []struct {
-		Name             string
-		ChartPath        string
-		Struct           interface{}
-		ShouldThrowError bool
-	}{
-		{
-			Name:      "Example Chart With Valid Schema Struct",
-			ChartPath: utils.MustGetPathFromModuleRoot("testdata", "charts", "example-chart"),
-			Struct: struct {
-				Data map[string]interface{} `jsonschema:"description=Data to be inserted into a ConfigMap"`
-			}{},
-			ShouldThrowError: true,
-		},
-		{
-			Name:      "With Schema With Valid Schema Struct",
-			ChartPath: utils.MustGetPathFromModuleRoot("testdata", "charts", "with-schema"),
-			Struct: struct {
-				Data map[string]interface{} `jsonschema:"description=Data to be inserted into a ConfigMap"`
-			}{},
-			ShouldThrowError: false,
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			c, err := NewChart(tc.ChartPath)
-			if err != nil {
-				t.Error("unable to construct chart from chart path")
-				return
-			}
-			if c == nil {
-				t.Errorf("received nil chart")
-				return
-			}
-			if tc.ShouldThrowError {
-				fakeT := &testing.T{}
-				c.SchemaMustMatchStruct(fakeT, tc.Struct)
-				if !fakeT.Failed() {
-					t.Errorf("expected error to be thrown")
-				}
-				return
-			}
-			c.SchemaMustMatchStruct(t, tc.Struct)
 		})
 	}
 }
