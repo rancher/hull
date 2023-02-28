@@ -10,7 +10,7 @@ annotations:
   catalog.cattle.io/namespace: cattle-hull-system
   catalog.cattle.io/permits-os: linux,windows
   catalog.cattle.io/rancher-version: '>= 2.7.0-0 <=2.7.99-0'
-  catalog.cattle.io/release-name: with-schema
+  catalog.cattle.io/release-name: invalid-kube-constraint
   catalog.cattle.io/os: linux,windows
 maintainers:
 - email: arvind.iyengar@suse.com
