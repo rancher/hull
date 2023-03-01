@@ -33,7 +33,12 @@ func GetRancherOptions() *SuiteOptions {
 
 type SuiteOptions struct {
 	HelmLint *chart.HelmLintOptions
+	YAMLLint YamlLintOptions
 	Coverage CoverageOptions
+}
+
+type YamlLintOptions struct {
+	Enabled bool
 }
 
 type CoverageOptions struct {
@@ -78,7 +83,9 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 			t.Run("HelmLint", func(t *testing.T) {
 				template.HelmLint(t, opts.HelmLint)
 			})
-			t.Run("YamlLint", template.YamlLint)
+			if opts.YAMLLint.Enabled {
+				t.Run("YamlLint", template.YamlLint)
+			}
 			for _, check := range s.TemplateChecks {
 				// skip cases if necessary
 				var skip bool
