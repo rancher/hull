@@ -118,6 +118,9 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 	t.Run("Coverage", func(t *testing.T) {
 		coverage, report := coverageTracker.CalculateCoverage()
 		assert.Equal(t, 1.00, coverage, report)
+		if !t.Failed() {
+			t.Log(report)
+		}
 		if err := templateUsage.GetWarnings(); err != nil {
 			t.Log(err)
 		}
