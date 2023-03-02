@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -41,6 +42,18 @@ func (o *TemplateOptions) SetValue(key, value string) *TemplateOptions {
 		o.ValuesOptions = &helmValues.Options{}
 	}
 	o.ValuesOptions.Values = append(o.ValuesOptions.Values, fmt.Sprintf("%s=%s", key, value))
+	return o
+}
+
+func (o *TemplateOptions) Set(key, value interface{}) *TemplateOptions {
+	jsonValue, err := json.Marshal(value)
+	if err != nil {
+		panic(fmt.Errorf("cannot marshall value %T (%s): %s", value, value, err))
+	}
+	if o.ValuesOptions == nil {
+		o.ValuesOptions = &helmValues.Options{}
+	}
+	o.ValuesOptions.JSONValues = append(o.ValuesOptions.Values, fmt.Sprintf("%s=%s", key, jsonValue))
 	return o
 }
 
@@ -106,7 +119,7 @@ func toCapabilitiesArgs(capOpts *helmChartUtil.Capabilities) string {
 	if capOpts == nil || capOpts == helmChartUtil.DefaultCapabilities {
 		return ""
 	}
-	return fmt.Sprintf("--kube-version %s", capOpts.KubeVersion.Version)
+	return fmt.Sprintf("--kube-version '%s'", capOpts.KubeVersion.Version)
 }
 
 func toValuesArgs(valOpts *helmValues.Options) string {
@@ -121,17 +134,22 @@ func toValuesArgs(valOpts *helmValues.Options) string {
 	}
 	if len(valOpts.Values) > 0 {
 		for _, setArg := range valOpts.Values {
-			args += fmt.Sprintf(" --set %s", setArg)
+			args += fmt.Sprintf(" --set '%s'", setArg)
 		}
 	}
 	if len(valOpts.StringValues) > 0 {
 		for _, setArg := range valOpts.StringValues {
-			args += fmt.Sprintf(" --set-string %s", setArg)
+			args += fmt.Sprintf(" --set-string '%s'", setArg)
 		}
 	}
 	if len(valOpts.FileValues) > 0 {
 		for _, setArg := range valOpts.FileValues {
-			args += fmt.Sprintf(" --set-file %s", setArg)
+			args += fmt.Sprintf(" --set-file '%s'", setArg)
+		}
+	}
+	if len(valOpts.JSONValues) > 0 {
+		for _, setArg := range valOpts.JSONValues {
+			args += fmt.Sprintf(" --set-json '%s'", setArg)
 		}
 	}
 	return strings.TrimPrefix(args, " ")

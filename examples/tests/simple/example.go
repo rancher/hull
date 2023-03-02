@@ -32,7 +32,7 @@ var suite = test.Suite{
 			Name: "Override .Values.data",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue("data.hello", "cattle"),
+				Set("data", map[string]string{"hello": "cattle"}),
 
 			ValueChecks: []test.ValueCheck{
 				{

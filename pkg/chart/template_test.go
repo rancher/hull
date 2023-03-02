@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -231,25 +232,27 @@ func TestTemplateOptionsString(t *testing.T) {
 			Name: "Custom Values Options",
 			Options: &TemplateOptions{
 				ValuesOptions: &helmValues.Options{
-					ValueFiles:   []string{"values.yaml"},
+					ValueFiles:   []string{"testdata/values.yaml"},
 					Values:       []string{"name=prod"},
 					StringValues: []string{"value=1234"},
-					FileValues:   []string{"myfile=hello"},
+					FileValues:   []string{"myfile=testdata/values.yaml"},
+					JSONValues:   []string{"myobj={\"hello\": \"world\"}"},
 				},
 			},
-			String: "helm template -f values.yaml --set name=prod --set-string value=1234 --set-file myfile=hello <path-to-chart>",
+			String: "helm template -f testdata/values.yaml --set 'name=prod' --set-string 'value=1234' --set-file 'myfile=testdata/values.yaml' --set-json 'myobj={\"hello\": \"world\"}' <path-to-chart>",
 		},
 		{
 			Name: "Custom Values Options With Multiple Values",
 			Options: &TemplateOptions{
 				ValuesOptions: &helmValues.Options{
-					ValueFiles:   []string{"values.yaml", "values-2.yaml"},
+					ValueFiles:   []string{"testdata/values.yaml", "testdata/values-2.yaml"},
 					Values:       []string{"name=prod", "cluster=world"},
 					StringValues: []string{"value=1234", "hello=4321"},
-					FileValues:   []string{"myfile=hello", "myscript=world"},
+					FileValues:   []string{"myfile=testdata/values.yaml", "myscript=testdata/values-2.yaml"},
+					JSONValues:   []string{"myobj={\"hello\": \"world\"}", "myobj2={\"hello\": \"rancher\"}"},
 				},
 			},
-			String: "helm template -f values.yaml -f values-2.yaml --set name=prod --set cluster=world --set-string value=1234 --set-string hello=4321 --set-file myfile=hello --set-file myscript=world <path-to-chart>",
+			String: "helm template -f testdata/values.yaml -f testdata/values-2.yaml --set 'name=prod' --set 'cluster=world' --set-string 'value=1234' --set-string 'hello=4321' --set-file 'myfile=testdata/values.yaml' --set-file 'myscript=testdata/values-2.yaml' --set-json 'myobj={\"hello\": \"world\"}' --set-json 'myobj2={\"hello\": \"rancher\"}' <path-to-chart>",
 		},
 		{
 			Name:    "Default",
@@ -259,12 +262,32 @@ func TestTemplateOptionsString(t *testing.T) {
 		{
 			Name:    "Default With KubeVersion",
 			Options: NewTemplateOptions("world", "hello").SetKubeVersion("1.16.0"),
-			String:  "helm template -n hello --kube-version v1.16.0 world <path-to-chart>",
+			String:  "helm template -n hello --kube-version 'v1.16.0' world <path-to-chart>",
 		},
 		{
 			Name:    "Default With Set Value",
 			Options: NewTemplateOptions("world", "hello").SetValue("rancher", "hull"),
-			String:  "helm template -n hello --set rancher=hull world <path-to-chart>",
+			String:  "helm template -n hello --set 'rancher=hull' world <path-to-chart>",
+		},
+		{
+			Name:    "Default With Nil Set",
+			Options: NewTemplateOptions("world", "hello").Set("rancher", nil),
+			String:  "helm template -n hello --set-json 'rancher=null' world <path-to-chart>",
+		},
+		{
+			Name:    "Default With Int Set",
+			Options: NewTemplateOptions("world", "hello").Set("rancher", 5),
+			String:  "helm template -n hello --set-json 'rancher=5' world <path-to-chart>",
+		},
+		{
+			Name:    "Default With String",
+			Options: NewTemplateOptions("world", "hello").Set("rancher", "world"),
+			String:  "helm template -n hello --set-json 'rancher=\"world\"' world <path-to-chart>",
+		},
+		{
+			Name:    "Default With map[string]string Set",
+			Options: NewTemplateOptions("world", "hello").Set("rancher", map[string]string{"hello": "world"}),
+			String:  "helm template -n hello --set-json 'rancher={\"hello\":\"world\"}' world <path-to-chart>",
 		},
 		{
 			Name:    "Default With Upgrade",
@@ -279,18 +302,22 @@ func TestTemplateOptionsString(t *testing.T) {
 		{
 			Name:    "Default With All",
 			Options: NewTemplateOptions("world", "hello").SetKubeVersion("1.16.0").SetValue("rancher", "hull").IsUpgrade(true),
-			String:  "helm template -n hello --is-upgrade --kube-version v1.16.0 --set rancher=hull world <path-to-chart>",
+			String:  "helm template -n hello --is-upgrade --kube-version 'v1.16.0' --set 'rancher=hull' world <path-to-chart>",
 		},
 		{
 			Name:    "Default With All",
 			Options: NewTemplateOptions("world", "hello").SetKubeVersion("1.16.0").SetValue("rancher", "hull").IsUpgrade(true),
-			String:  "helm template -n hello --is-upgrade --kube-version v1.16.0 --set rancher=hull world <path-to-chart>",
+			String:  "helm template -n hello --is-upgrade --kube-version 'v1.16.0' --set 'rancher=hull' world <path-to-chart>",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			assert.Equal(t, tc.String, tc.Options.String())
+			if tc.Options.ValuesOptions != nil {
+				_, err := tc.Options.ValuesOptions.MergeValues(nil)
+				assert.Nil(t, err, fmt.Sprintf("could not compute values.yaml overrides for command '%s': %s", tc.String, err))
+			}
 		})
 	}
 }
