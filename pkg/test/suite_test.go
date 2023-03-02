@@ -113,6 +113,9 @@ func TestRun(t *testing.T) {
 			Coverage: CoverageOptions{
 				Disabled: false,
 			},
+			YAMLLint: YamlLintOptions{
+				Enabled: true,
+			},
 		})
 	})
 
