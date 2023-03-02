@@ -187,7 +187,8 @@ func (t *Tracker) CalculateCoverage() (float64, string) {
 	sort.Strings(unusedReferences)
 
 	if numUsedReferences == numReferences {
-		return 1, fmt.Sprintf("All keys in chart are fully covered: %v", usedReferences)
+		return 1, "All keys in chart are fully covered:\n- " +
+			strings.Join(usedReferences, "\n- ")
 	}
 
 	if numUsedReferences == 0 {

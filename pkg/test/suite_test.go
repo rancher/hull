@@ -158,6 +158,9 @@ func TestRun(t *testing.T) {
 			Coverage: CoverageOptions{
 				Disabled: true,
 			},
+			YAMLLint: YamlLintOptions{
+				Enabled: true,
+			},
 		}
 		suite.Run(t, opts)
 		var visitedTestsSlice []string

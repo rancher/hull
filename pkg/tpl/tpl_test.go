@@ -166,6 +166,7 @@ func TestCollectTemplateUsage(t *testing.T) {
 							".Values.global.kubectl.tag",
 						},
 						TemplateCalls: []string{
+							"example-chart.labels",
 							"example-chart.name",
 							"linux-node-selector",
 							"linux-node-tolerations",
