@@ -4,7 +4,7 @@ kind: Job
 metadata:
   name: {{ template "example-chart.name" . }}-patch-sa
   namespace: {{ .Release.Namespace }}
-  labels:
+  labels: {{ include "example-chart.labels" . | nindent 4 }}
     app: {{ template "example-chart.name" . }}-patch-sa
   annotations:
     "helm.sh/hook": post-install, post-upgrade
@@ -36,7 +36,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ template "example-chart.name" . }}-patch-sa
-  labels:
+  labels: {{ include "example-chart.labels" . | nindent 4 }}
     app: {{ template "example-chart.name" . }}-patch-sa
 rules:
 - apiGroups:
@@ -54,7 +54,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ template "example-chart.name" . }}-patch-sa
-  labels:
+  labels: {{ include "example-chart.labels" . | nindent 4 }}
     app: {{ template "example-chart.name" . }}-patch-sa
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -70,7 +70,7 @@ kind: ServiceAccount
 metadata:
   name: {{ template "example-chart.name" . }}-patch-sa
   namespace: {{ .Release.Namespace }}
-  labels:
+  labels: {{ include "example-chart.labels" . | nindent 4 }}
     app: {{ template "example-chart.name" . }}-patch-sa
 ---
 apiVersion: policy/v1beta1
@@ -78,7 +78,7 @@ kind: PodSecurityPolicy
 metadata:
   name: {{ template "example-chart.name" . }}-patch-sa
   namespace: {{ .Release.Namespace }}
-  labels:
+  labels: {{ include "example-chart.labels" . | nindent 4 }}
     app: {{ template "example-chart.name" . }}-patch-sa
 spec:
   privileged: false
@@ -109,6 +109,8 @@ kind: NetworkPolicy
 metadata:
   name: default-allow-all
   namespace: {{ $ns }}
+  labels: {{ include "example-chart.labels" $ | nindent 4 }}
+    app: {{ template "example-chart.name" $ }}-patch-sa
 spec:
   podSelector: {}
   ingress:
