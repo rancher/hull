@@ -35,24 +35,24 @@ func TestNewCheckFunc(t *testing.T) {
 		{
 			Name: "Basic Example",
 			Funcs: []ChainedCheckFunc{
-				NewChainedCheckFunc(func(t *TestContext, deployments []*appsv1.Deployment) error {
-					assert.NotNil(t.T, deployments)
-					assert.Equal(t.T, 1, len(deployments))
-					t.Store("hello", "goodbye")
+				NewChainedCheckFunc(func(tc *TestContext, deployments []*appsv1.Deployment) error {
+					assert.NotNil(tc.T, deployments)
+					assert.Equal(tc.T, 1, len(deployments))
+					Store(tc, "hello", "goodbye")
 					return nil
 				}),
-				NewChainedCheckFunc(func(t *TestContext, daemonsets []*appsv1.DaemonSet) error {
-					assert.NotNil(t.T, daemonsets)
-					assert.Equal(t.T, 1, len(daemonsets))
-					t.Store("hello", "world")
+				NewChainedCheckFunc(func(tc *TestContext, daemonsets []*appsv1.DaemonSet) error {
+					assert.NotNil(tc.T, daemonsets)
+					assert.Equal(tc.T, 1, len(daemonsets))
+					Store(tc, "hello", "world")
 					return nil
 				}),
-				NewChainedCheckFunc(func(t *TestContext, all []*unstructured.Unstructured) error {
-					assert.NotNil(t.T, all)
-					assert.Equal(t.T, 2, len(all))
-					hello, ok := t.Get("hello")
-					assert.True(t.T, ok)
-					assert.Equal(t.T, "world", hello)
+				NewChainedCheckFunc(func(tc *TestContext, all []*unstructured.Unstructured) error {
+					assert.NotNil(tc.T, all)
+					assert.Equal(tc.T, 2, len(all))
+					hello, ok := Get[string, string](tc, "hello")
+					assert.True(tc.T, ok)
+					assert.Equal(tc.T, "world", hello)
 					return nil
 				}),
 			},

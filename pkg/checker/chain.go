@@ -8,13 +8,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type TestingT struct{}
-
 func NewCheckFunc(funcs ...ChainedCheckFunc) CheckFunc {
 	return func(t *testing.T, u struct{ Unstructured []*unstructured.Unstructured }) {
-		tc := &TestContext{
-			Data: make(map[interface{}]interface{}),
-		}
+		tc := NewContext()
 		for _, f := range funcs {
 			checkFunc := f(tc)
 			doFunc := internal.WrapFunc(checkFunc, &internal.ParseOptions{
@@ -27,21 +23,6 @@ func NewCheckFunc(funcs ...ChainedCheckFunc) CheckFunc {
 			doFunc(t, objs)
 		}
 	}
-}
-
-type TestContext struct {
-	T *testing.T
-
-	Data map[interface{}]interface{}
-}
-
-func (c *TestContext) Store(key interface{}, value interface{}) {
-	c.Data[key] = value
-}
-
-func (c *TestContext) Get(key interface{}) (interface{}, bool) {
-	value, ok := c.Data[key]
-	return value, ok
 }
 
 type ChainedCheckFunc func(t *TestContext) CheckFunc
