@@ -52,7 +52,7 @@ func (c *chart) GetHelmChart() *helmChart.Chart {
 
 func (c *chart) RenderTemplate(opts *TemplateOptions) (Template, error) {
 	opts = opts.setDefaults(c.Metadata.Name)
-	values, err := opts.ValuesOptions.MergeValues(nil)
+	values, err := opts.Values.ToMap()
 	if err != nil {
 		return nil, err
 	}

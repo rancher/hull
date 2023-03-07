@@ -7,8 +7,6 @@ import (
 	"github.com/aiyengar2/hull/pkg/test/coverage"
 	"github.com/aiyengar2/hull/pkg/tpl"
 	"github.com/stretchr/testify/assert"
-
-	helmValues "helm.sh/helm/v3/pkg/cli/values"
 )
 
 type Suite struct {
@@ -28,8 +26,8 @@ func (s *Suite) setDefaults() *Suite {
 		if s.Cases[i].TemplateOptions == nil {
 			s.Cases[i].TemplateOptions = &chart.TemplateOptions{}
 		}
-		if s.Cases[i].TemplateOptions.ValuesOptions == nil {
-			s.Cases[i].TemplateOptions.ValuesOptions = &helmValues.Options{}
+		if s.Cases[i].TemplateOptions.Values == nil {
+			s.Cases[i].TemplateOptions.Values = chart.NewValues()
 		}
 	}
 	return s

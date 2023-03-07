@@ -184,7 +184,7 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 	}
 
 	command := "helm lint --strict"
-	valArgs := toValuesArgs(t.Options.ValuesOptions)
+	valArgs := toValuesArgs(t.Options.Values)
 	if len(valArgs) > 0 {
 		command += " " + valArgs
 	}
