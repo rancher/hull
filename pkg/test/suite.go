@@ -68,8 +68,8 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 		t.Error(err)
 		return
 	}
-	assert.NotNil(t, templateUsage)
-	if t.Failed() {
+	if templateUsage == nil {
+		t.Errorf("templateUsage is nil")
 		return
 	}
 	coverageTracker := coverage.NewTracker(templateUsage, opts.Coverage.IncludeSubcharts)
