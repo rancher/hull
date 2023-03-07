@@ -35,15 +35,14 @@ var suite = test.Suite{
 						)
 						serviceAccountsToCheck[key] = false
 					}
-					tc.Store("ServiceAccountsToCheck", serviceAccountsToCheck)
+					checker.Store(tc, "ServiceAccountsToCheck", serviceAccountsToCheck)
 					return nil
 				}),
 				checker.NewChainedCheckFunc(func(tc *checker.TestContext, serviceAccounts []*corev1.ServiceAccount) error {
-					serviceAccountsToCheckInterface, ok := tc.Get("ServiceAccountsToCheck")
+					serviceAccountsToCheck, ok := checker.Get[string, map[relatedresource.Key]bool](tc, "ServiceAccountsToCheck")
 					if !ok {
 						return nil
 					}
-					serviceAccountsToCheck := serviceAccountsToCheckInterface.(map[relatedresource.Key]bool)
 					for _, serviceAccount := range serviceAccounts {
 						key := relatedresource.NewKey(serviceAccount.Namespace, serviceAccount.Name)
 						_, ok := serviceAccountsToCheck[key]
