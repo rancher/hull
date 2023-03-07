@@ -110,6 +110,20 @@ func TestRun(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "Simple Chart With Nil TemplateOptions In FailureCase But Failing DefaultValues",
+			Suite: &Suite{
+				ChartPath:     simpleChartPath,
+				DefaultValues: chart.NewValues().Set("shouldFail", "true"),
+				FailureCases: []FailureCase{
+					{
+						Name:            "No Options",
+						TemplateOptions: nil,
+						FailureMessage:  ".Values.shouldFail is set to true",
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -147,6 +161,32 @@ func TestRun(t *testing.T) {
 							Func:   func(*testing.T, struct{}) {},
 						},
 					},
+				},
+			},
+			FailureCases: []FailureCase{
+				{
+					Name: "Set .Values.shouldFail",
+
+					TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace).
+						SetValue("shouldFail", "true"),
+
+					Covers: []string{
+						"templates/configmap.yaml",
+					},
+
+					FailureMessage: ".Values.shouldFail is set to true",
+				},
+				{
+					Name: "Set .Values.shouldFailRequired",
+
+					TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace).
+						SetValue("shouldFailRequired", "true"),
+
+					Covers: []string{
+						"templates/configmap.yaml",
+					},
+
+					FailureMessage: ".Values.shouldFailRequired is set to true",
 				},
 			},
 		}

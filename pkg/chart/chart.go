@@ -71,7 +71,7 @@ func (c *chart) RenderTemplate(opts *TemplateOptions) (Template, error) {
 		return nil, err
 	}
 	e := helmEngine.New(nil)
-	e.LintMode = true
+	e.LintMode = false
 	templateYamls, err := e.Render(c.Chart, renderValues)
 	if err != nil {
 		return nil, err

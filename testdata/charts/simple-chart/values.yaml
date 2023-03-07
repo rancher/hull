@@ -1,2 +1,6 @@
 data:
   hello: rancher
+
+shouldFail: false
+
+shouldFailRequired: false
