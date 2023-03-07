@@ -8,7 +8,6 @@ import (
 	"github.com/aiyengar2/hull/pkg/utils"
 	"github.com/rancher/wrangler/pkg/objectset"
 	"github.com/stretchr/testify/assert"
-	helmValues "helm.sh/helm/v3/pkg/cli/values"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -231,7 +230,7 @@ func TestTemplateOptionsString(t *testing.T) {
 		{
 			Name: "Custom Values Options",
 			Options: &TemplateOptions{
-				ValuesOptions: &helmValues.Options{
+				Values: &Values{
 					ValueFiles:   []string{"testdata/values.yaml"},
 					Values:       []string{"name=prod"},
 					StringValues: []string{"value=1234"},
@@ -244,7 +243,7 @@ func TestTemplateOptionsString(t *testing.T) {
 		{
 			Name: "Custom Values Options With Multiple Values",
 			Options: &TemplateOptions{
-				ValuesOptions: &helmValues.Options{
+				Values: &Values{
 					ValueFiles:   []string{"testdata/values.yaml", "testdata/values-2.yaml"},
 					Values:       []string{"name=prod", "cluster=world"},
 					StringValues: []string{"value=1234", "hello=4321"},
@@ -314,8 +313,8 @@ func TestTemplateOptionsString(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			assert.Equal(t, tc.String, tc.Options.String())
-			if tc.Options.ValuesOptions != nil {
-				_, err := tc.Options.ValuesOptions.MergeValues(nil)
+			if tc.Options.Values != nil {
+				_, err := tc.Options.Values.ToMap()
 				assert.Nil(t, err, fmt.Sprintf("could not compute values.yaml overrides for command '%s': %s", tc.String, err))
 			}
 		})
