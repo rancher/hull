@@ -19,7 +19,7 @@ func NewTemplateOptions(name, namespace string) *TemplateOptions {
 type TemplateOptions struct {
 	Values       *Values
 	Release      helmChartUtil.ReleaseOptions
-	Capabilities *helmChartUtil.Capabilities
+	Capabilities *Capabilities
 }
 
 func (o *TemplateOptions) SetKubeVersion(version string) *TemplateOptions {
@@ -28,7 +28,7 @@ func (o *TemplateOptions) SetKubeVersion(version string) *TemplateOptions {
 		panic(fmt.Errorf("invalid kubeVersion %s provided: %s", version, err))
 	}
 	if o.Capabilities == nil {
-		o.Capabilities = &helmChartUtil.Capabilities{}
+		o.Capabilities = &Capabilities{}
 	}
 	o.Capabilities.KubeVersion = *kubeVersion
 	return o
@@ -63,7 +63,7 @@ func (o *TemplateOptions) setDefaults(chart string) *TemplateOptions {
 		o.Release.IsInstall = true
 	}
 	if o.Capabilities == nil {
-		o.Capabilities = helmChartUtil.DefaultCapabilities
+		o.Capabilities = (*Capabilities)(helmChartUtil.DefaultCapabilities)
 	}
 	if o.Values == nil {
 		o.Values = NewValues()
@@ -100,11 +100,4 @@ func toReleaseArgs(relOpts helmChartUtil.ReleaseOptions) string {
 		return "--is-upgrade"
 	}
 	return ""
-}
-
-func toCapabilitiesArgs(capOpts *helmChartUtil.Capabilities) string {
-	if capOpts == nil || capOpts == helmChartUtil.DefaultCapabilities {
-		return ""
-	}
-	return fmt.Sprintf("--kube-version '%s'", capOpts.KubeVersion.Version)
 }
