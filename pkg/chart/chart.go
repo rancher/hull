@@ -56,7 +56,7 @@ func (c *chart) RenderTemplate(opts *TemplateOptions) (Template, error) {
 	if err != nil {
 		return nil, err
 	}
-	renderValues, err := helmChartUtil.ToRenderValues(c.Chart, values, opts.Release, (*helmChartUtil.Capabilities)(opts.Capabilities))
+	renderValues, err := helmChartUtil.ToRenderValues(c.Chart, values, helmChartUtil.ReleaseOptions(opts.Release), (*helmChartUtil.Capabilities)(opts.Capabilities))
 	if err != nil {
 		return nil, err
 	}

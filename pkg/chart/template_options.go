@@ -8,7 +8,7 @@ import (
 
 func NewTemplateOptions(name, namespace string) *TemplateOptions {
 	o := &TemplateOptions{
-		Release: helmChartUtil.ReleaseOptions{
+		Release: Release{
 			Name:      name,
 			Namespace: namespace,
 		},
@@ -18,7 +18,7 @@ func NewTemplateOptions(name, namespace string) *TemplateOptions {
 
 type TemplateOptions struct {
 	Values       *Values
-	Release      helmChartUtil.ReleaseOptions
+	Release      Release
 	Capabilities *Capabilities
 }
 
@@ -93,11 +93,4 @@ func (o TemplateOptions) String() string {
 	}
 	args += " <path-to-chart>"
 	return args
-}
-
-func toReleaseArgs(relOpts helmChartUtil.ReleaseOptions) string {
-	if relOpts.IsUpgrade {
-		return "--is-upgrade"
-	}
-	return ""
 }
