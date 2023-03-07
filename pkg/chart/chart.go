@@ -17,6 +17,7 @@ type Chart interface {
 	GetPath() string
 	GetHelmChart() *helmChart.Chart
 
+	RenderValues(opts *TemplateOptions) (helmChartUtil.Values, error)
 	RenderTemplate(opts *TemplateOptions) (Template, error)
 }
 
@@ -50,13 +51,22 @@ func (c *chart) GetHelmChart() *helmChart.Chart {
 	return c.Chart
 }
 
+func (c *chart) RenderValues(opts *TemplateOptions) (helmChartUtil.Values, error) {
+	opts = opts.setDefaults(c.Metadata.Name)
+	values, err := opts.Values.ToMap()
+	if err != nil {
+		return nil, err
+	}
+	return helmChartUtil.ToRenderValues(c.Chart, values, helmChartUtil.ReleaseOptions(opts.Release), (*helmChartUtil.Capabilities)(opts.Capabilities))
+}
+
 func (c *chart) RenderTemplate(opts *TemplateOptions) (Template, error) {
 	opts = opts.setDefaults(c.Metadata.Name)
 	values, err := opts.Values.ToMap()
 	if err != nil {
 		return nil, err
 	}
-	renderValues, err := helmChartUtil.ToRenderValues(c.Chart, values, helmChartUtil.ReleaseOptions(opts.Release), (*helmChartUtil.Capabilities)(opts.Capabilities))
+	renderValues, err := c.RenderValues(opts)
 	if err != nil {
 		return nil, err
 	}
