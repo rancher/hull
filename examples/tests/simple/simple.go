@@ -52,4 +52,30 @@ var suite = test.Suite{
 			},
 		},
 	},
+	FailureCases: []test.FailureCase{
+		{
+			Name: "Set .Values.shouldFail",
+
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				SetValue("shouldFail", "true"),
+
+			Covers: []string{
+				"templates/configmap.yaml",
+			},
+
+			FailureMessage: ".Values.shouldFail is set to true",
+		},
+		{
+			Name: "Set .Values.shouldFailRequired",
+
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				SetValue("shouldFailRequired", "true"),
+
+			Covers: []string{
+				"templates/configmap.yaml",
+			},
+
+			FailureMessage: ".Values.shouldFailRequired is set to true",
+		},
+	},
 }
