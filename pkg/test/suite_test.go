@@ -49,10 +49,39 @@ func TestRun(t *testing.T) {
 			Name: "Example Chart",
 			Suite: &Suite{
 				ChartPath: chartPath,
+			},
+		},
+		{
+			Name: "Example Chart With Nil TemplateOptions",
+			Suite: &Suite{
+				ChartPath: chartPath,
+				Cases: []Case{
+					{
+						Name:            "No Options",
+						TemplateOptions: nil,
+					},
+				},
+			},
+		},
+		{
+			Name: "Example Chart With Cases",
+			Suite: &Suite{
+				ChartPath: chartPath,
+				Cases: []Case{
+					{
+						Name:            "Using Defaults",
+						TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace),
+					},
+				},
+			},
+		},
+		{
+			Name: "Example Chart With Cases And Nil Checks",
+			Suite: &Suite{
+				ChartPath: chartPath,
 				TemplateChecks: []TemplateCheck{
 					{
-						Name: "Noop Default",
-						Func: func(*testing.T, struct{}) {},
+						Name: "Noop",
 					},
 				},
 				Cases: []Case{
@@ -62,7 +91,6 @@ func TestRun(t *testing.T) {
 						ValueChecks: []ValueCheck{
 							{
 								Name: "Noop",
-								Func: func(*testing.T, struct{}) {},
 							},
 						},
 					},

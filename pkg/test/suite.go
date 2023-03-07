@@ -7,6 +7,8 @@ import (
 	"github.com/aiyengar2/hull/pkg/test/coverage"
 	"github.com/aiyengar2/hull/pkg/tpl"
 	"github.com/stretchr/testify/assert"
+
+	helmValues "helm.sh/helm/v3/pkg/cli/values"
 )
 
 type Suite struct {
@@ -19,6 +21,18 @@ type Case struct {
 	Name            string
 	TemplateOptions *chart.TemplateOptions
 	ValueChecks     []ValueCheck
+}
+
+func (s *Suite) setDefaults() *Suite {
+	for i := range s.Cases {
+		if s.Cases[i].TemplateOptions == nil {
+			s.Cases[i].TemplateOptions = &chart.TemplateOptions{}
+		}
+		if s.Cases[i].TemplateOptions.ValuesOptions == nil {
+			s.Cases[i].TemplateOptions.ValuesOptions = &helmValues.Options{}
+		}
+	}
+	return s
 }
 
 func GetRancherOptions() *SuiteOptions {
@@ -61,6 +75,7 @@ func (o *SuiteOptions) setDefaults() *SuiteOptions {
 }
 
 func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
+	s = s.setDefaults()
 	opts = opts.setDefaults()
 	c, err := chart.NewChart(s.ChartPath)
 	if err != nil {
