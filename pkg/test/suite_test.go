@@ -109,14 +109,7 @@ func TestRun(t *testing.T) {
 				},
 			},
 		}
-		suite.Run(t, &SuiteOptions{
-			Coverage: CoverageOptions{
-				Disabled: false,
-			},
-			YAMLLint: YamlLintOptions{
-				Enabled: true,
-			},
-		})
+		suite.Run(t, nil)
 	})
 
 	t.Run("OmitCases", func(t *testing.T) {
