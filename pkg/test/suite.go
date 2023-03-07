@@ -11,6 +11,7 @@ import (
 
 type Suite struct {
 	ChartPath      string
+	DefaultValues  *chart.Values
 	TemplateChecks []TemplateCheck
 	Cases          []Case
 }
@@ -28,6 +29,9 @@ func (s *Suite) setDefaults() *Suite {
 		}
 		if s.Cases[i].TemplateOptions.Values == nil {
 			s.Cases[i].TemplateOptions.Values = chart.NewValues()
+		}
+		if s.DefaultValues != nil {
+			s.Cases[i].TemplateOptions.Values = s.DefaultValues.MergeValues(s.Cases[i].TemplateOptions.Values)
 		}
 	}
 	return s

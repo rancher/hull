@@ -64,6 +64,19 @@ func TestRun(t *testing.T) {
 			},
 		},
 		{
+			Name: "Example Chart With DefaultValues",
+			Suite: &Suite{
+				ChartPath:     chartPath,
+				DefaultValues: chart.NewValues(),
+				Cases: []Case{
+					{
+						Name:            "No Options",
+						TemplateOptions: nil,
+					},
+				},
+			},
+		},
+		{
 			Name: "Example Chart With Cases",
 			Suite: &Suite{
 				ChartPath: chartPath,
