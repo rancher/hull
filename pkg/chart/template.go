@@ -19,7 +19,7 @@ import (
 )
 
 //go:embed configuration/yamllint.yaml
-var yamllintConf string
+var DefaultYamllintConf string
 
 type Template interface {
 	checker.Checker
@@ -30,7 +30,7 @@ type Template interface {
 	GetObjectSets() map[string]*objectset.ObjectSet
 	GetValues() map[string]interface{}
 
-	YamlLint(t *testing.T)
+	YamlLint(t *testing.T, yamllintConf string)
 	HelmLint(t *testing.T, opts *HelmLintOptions)
 }
 
@@ -66,16 +66,16 @@ func (t *template) GetValues() map[string]interface{} {
 	return t.Values
 }
 
-func (t *template) YamlLint(tT *testing.T) {
+func (t *template) YamlLint(tT *testing.T, yamllintConf string) {
 	for templateFile := range t.ObjectSets {
 		if len(templateFile) == 0 {
 			continue
 		}
-		t.yamlLint(tT, templateFile)
+		t.yamlLint(tT, templateFile, yamllintConf)
 	}
 }
 
-func (t *template) yamlLint(tT *testing.T, templateFile string) {
+func (t *template) yamlLint(tT *testing.T, templateFile, yamllintConf string) {
 	objectSet, ok := t.ObjectSets[templateFile]
 	if !ok || objectSet.Len() == 0 {
 		// no objects to lint

@@ -38,7 +38,8 @@ type SuiteOptions struct {
 }
 
 type YamlLintOptions struct {
-	Enabled bool
+	Enabled       bool
+	Configuration string
 }
 
 type CoverageOptions struct {
@@ -52,6 +53,9 @@ func (o *SuiteOptions) setDefaults() *SuiteOptions {
 	}
 	if o.HelmLint == nil {
 		o.HelmLint = &chart.HelmLintOptions{}
+	}
+	if len(o.YAMLLint.Configuration) == 0 {
+		o.YAMLLint.Configuration = chart.DefaultYamllintConf
 	}
 	return o
 }
@@ -84,7 +88,9 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 				template.HelmLint(t, opts.HelmLint)
 			})
 			if opts.YAMLLint.Enabled {
-				t.Run("YamlLint", template.YamlLint)
+				t.Run("YamlLint", func(t *testing.T) {
+					template.YamlLint(t, opts.YAMLLint.Configuration)
+				})
 			}
 			for _, check := range s.TemplateChecks {
 				// skip cases if necessary
