@@ -41,11 +41,10 @@ var suite = test.Suite{
 						"templates/configmap.yaml",
 					},
 					Func: checker.NewCheckFunc(
-						checker.NewChainedCheckFunc(func(tc *checker.TestContext, configmaps []*corev1.ConfigMap) error {
-							for _, configmap := range configmaps {
+						checker.NewChainedCheckFunc(func(tc *checker.TestContext, objs struct{ Configmaps []*corev1.ConfigMap }) {
+							for _, configmap := range objs.Configmaps {
 								assert.Equal(tc.T, map[string]string{"config": "hello: cattle"}, configmap.Data)
 							}
-							return nil
 						}),
 					),
 				},

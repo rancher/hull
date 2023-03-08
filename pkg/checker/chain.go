@@ -11,8 +11,12 @@ import (
 func NewCheckFunc(funcs ...ChainedCheckFunc) CheckFunc {
 	return func(t *testing.T, u struct{ Unstructured []*unstructured.Unstructured }) {
 		tc := NewContext()
+		tc.T = t
 		for _, f := range funcs {
 			checkFunc := f(tc)
+			if checkFunc == nil {
+				continue
+			}
 			doFunc := internal.WrapFunc(checkFunc, &internal.ParseOptions{
 				Scheme: Scheme,
 			})
@@ -20,20 +24,24 @@ func NewCheckFunc(funcs ...ChainedCheckFunc) CheckFunc {
 			for i, unstructured := range u.Unstructured {
 				objs[i] = unstructured
 			}
-			doFunc(t, objs)
+			doFunc(tc.T, objs)
+			if tc.T.Failed() {
+				break
+			}
 		}
 	}
 }
 
 type ChainedCheckFunc func(t *TestContext) CheckFunc
 
-func NewChainedCheckFunc[O runtime.Object](typedCheckFunc func(t *TestContext, objects []O) error) ChainedCheckFunc {
+func NewChainedCheckFunc[S interface{}](checkFuncWithContext func(tc *TestContext, objStruct S)) ChainedCheckFunc {
 	return func(tc *TestContext) CheckFunc {
-		return func(t *testing.T, objs struct{ Objects []O }) {
+		if checkFuncWithContext == nil {
+			return nil
+		}
+		return func(t *testing.T, objStruct S) {
 			tc.T = t
-			if err := typedCheckFunc(tc, objs.Objects); err != nil {
-				t.Error(err)
-			}
+			checkFuncWithContext(tc, objStruct)
 		}
 	}
 }
