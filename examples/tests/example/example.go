@@ -26,9 +26,9 @@ var suite = test.Suite{
 		{
 			Name: "All Deployments Have ServiceAccount",
 			Func: checker.NewCheckFunc(
-				checker.NewChainedCheckFunc(func(tc *checker.TestContext, objs struct{ Deployments []*appsv1.Deployment }) {
+				checker.OnResources(func(tc *checker.TestContext, deployments []*appsv1.Deployment) {
 					serviceAccountsToCheck := map[relatedresource.Key]bool{}
-					for _, deployment := range objs.Deployments {
+					for _, deployment := range deployments {
 						key := relatedresource.NewKey(
 							deployment.Namespace,
 							deployment.Spec.Template.Spec.ServiceAccountName,
@@ -37,12 +37,12 @@ var suite = test.Suite{
 					}
 					checker.Store(tc, "ServiceAccountsToCheck", serviceAccountsToCheck)
 				}),
-				checker.NewChainedCheckFunc(func(tc *checker.TestContext, objs struct{ ServiceAccounts []*corev1.ServiceAccount }) {
+				checker.OnResources(func(tc *checker.TestContext, serviceAccounts []*corev1.ServiceAccount) {
 					serviceAccountsToCheck, ok := checker.Get[string, map[relatedresource.Key]bool](tc, "ServiceAccountsToCheck")
 					if !ok {
 						return
 					}
-					for _, serviceAccount := range objs.ServiceAccounts {
+					for _, serviceAccount := range serviceAccounts {
 						key := relatedresource.NewKey(serviceAccount.Namespace, serviceAccount.Name)
 						_, ok := serviceAccountsToCheck[key]
 						if !ok {
@@ -80,11 +80,9 @@ var suite = test.Suite{
 						"templates/deployment.yaml",
 					},
 					Func: checker.NewCheckFunc(
-						checker.NewChainedCheckFunc(func(tc *checker.TestContext, objs struct{ Deployments []*appsv1.Deployment }) {
-							for _, deployment := range objs.Deployments {
-								for _, container := range deployment.Spec.Template.Spec.Containers {
-									assert.Equal(tc.T, []string{"--debug"}, container.Args, "container %s in Deployment %s/%s does not have debug", container.Name, deployment.Namespace, deployment.Name)
-								}
+						checker.PerResource(func(tc *checker.TestContext, deployment *appsv1.Deployment) {
+							for _, container := range deployment.Spec.Template.Spec.Containers {
+								assert.Equal(tc.T, []string{"--debug"}, container.Args, "container %s in Deployment %s/%s does not have debug", container.Name, deployment.Namespace, deployment.Name)
 							}
 						}),
 					),

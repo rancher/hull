@@ -169,10 +169,7 @@ func TestNewCheckFunc(t *testing.T) {
 			}
 			checks := tc.Checks
 			if tc.FinalCheck != nil {
-				checks = append(checks, func(tctx *TestContext) CheckFunc {
-					tc.FinalCheck(tctx)
-					return nil
-				})
+				checks = append(checks, Once(tc.FinalCheck))
 			}
 			checkFunc := NewCheckFunc(checks...)
 			checkFuncVal := reflect.ValueOf(checkFunc)
