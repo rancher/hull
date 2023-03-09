@@ -145,8 +145,10 @@ func TestRun(t *testing.T) {
 
 			NamedChecks: []NamedCheck{
 				{
-					Name:   "Noop",
-					Covers: []string{"templates/configmap.yaml"},
+					Name: "Noop",
+
+					Covers: []string{".Values.data"},
+
 					Checks: Checks{
 						checker.NewChainedCheckFunc[struct{}](nil),
 					},
@@ -155,15 +157,15 @@ func TestRun(t *testing.T) {
 
 			Cases: []Case{
 				{
-					Name:            "Using Defaults",
+					Name: "Using Defaults",
+
 					TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace),
 				},
 				{
 					Name: "Set Data",
+
 					TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace).
-						Set("data", map[string]string{
-							"hello": "world",
-						}),
+						Set("data", map[string]string{"hello": "world"}),
 				},
 			},
 
@@ -175,7 +177,7 @@ func TestRun(t *testing.T) {
 						SetValue("shouldFail", "true"),
 
 					Covers: []string{
-						"templates/configmap.yaml",
+						".Values.shouldFail",
 					},
 
 					FailureMessage: ".Values.shouldFail is set to true",
@@ -187,7 +189,7 @@ func TestRun(t *testing.T) {
 						SetValue("shouldFailRequired", "true"),
 
 					Covers: []string{
-						"templates/configmap.yaml",
+						".Values.shouldFailRequired",
 					},
 
 					FailureMessage: ".Values.shouldFailRequired is set to true",
