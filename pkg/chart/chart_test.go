@@ -6,7 +6,6 @@ import (
 
 	"github.com/aiyengar2/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
-	helmValues "helm.sh/helm/v3/pkg/cli/values"
 )
 
 func TestNewChart(t *testing.T) {
@@ -89,7 +88,7 @@ func TestRenderTemplate(t *testing.T) {
 			Name:  "Bad Values",
 			Chart: c,
 			Opts: &TemplateOptions{
-				ValuesOptions: &helmValues.Options{
+				Values: &Values{
 					Values: []string{"i-am-a-bad-option#2@"},
 				},
 			},

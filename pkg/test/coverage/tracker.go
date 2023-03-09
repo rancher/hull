@@ -10,8 +10,6 @@ import (
 	"github.com/aiyengar2/hull/pkg/tpl"
 	"github.com/aiyengar2/hull/pkg/tpl/parse"
 	"github.com/gobwas/glob"
-
-	helmValues "helm.sh/helm/v3/pkg/cli/values"
 )
 
 type Tracker struct {
@@ -133,14 +131,14 @@ func (t *Tracker) Record(templateOptions *chart.TemplateOptions, templateGlobPat
 	// }
 
 	// Get setFields under .Values.*
-	valueOpts := templateOptions.ValuesOptions
+	valueOpts := templateOptions.Values
 	if valueOpts == nil {
-		valueOpts = &helmValues.Options{}
+		valueOpts = chart.NewValues()
 	} else {
 		// at least one value was overridden
 		setFields = append(setFields, ".Values")
 	}
-	values, err := valueOpts.MergeValues(nil)
+	values, err := valueOpts.ToMap()
 	if err != nil {
 		return err
 	}

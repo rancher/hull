@@ -1,17 +1,14 @@
 package chart
 
 import (
-	"encoding/json"
 	"fmt"
-	"strings"
 
 	helmChartUtil "helm.sh/helm/v3/pkg/chartutil"
-	helmValues "helm.sh/helm/v3/pkg/cli/values"
 )
 
 func NewTemplateOptions(name, namespace string) *TemplateOptions {
 	o := &TemplateOptions{
-		Release: helmChartUtil.ReleaseOptions{
+		Release: Release{
 			Name:      name,
 			Namespace: namespace,
 		},
@@ -20,9 +17,9 @@ func NewTemplateOptions(name, namespace string) *TemplateOptions {
 }
 
 type TemplateOptions struct {
-	ValuesOptions *helmValues.Options
-	Release       helmChartUtil.ReleaseOptions
-	Capabilities  *helmChartUtil.Capabilities
+	Values       *Values
+	Release      Release
+	Capabilities *Capabilities
 }
 
 func (o *TemplateOptions) SetKubeVersion(version string) *TemplateOptions {
@@ -31,29 +28,19 @@ func (o *TemplateOptions) SetKubeVersion(version string) *TemplateOptions {
 		panic(fmt.Errorf("invalid kubeVersion %s provided: %s", version, err))
 	}
 	if o.Capabilities == nil {
-		o.Capabilities = &helmChartUtil.Capabilities{}
+		o.Capabilities = &Capabilities{}
 	}
 	o.Capabilities.KubeVersion = *kubeVersion
 	return o
 }
 
 func (o *TemplateOptions) SetValue(key, value string) *TemplateOptions {
-	if o.ValuesOptions == nil {
-		o.ValuesOptions = &helmValues.Options{}
-	}
-	o.ValuesOptions.Values = append(o.ValuesOptions.Values, fmt.Sprintf("%s=%s", key, value))
+	o.Values = o.Values.SetValue(key, value)
 	return o
 }
 
 func (o *TemplateOptions) Set(key, value interface{}) *TemplateOptions {
-	jsonValue, err := json.Marshal(value)
-	if err != nil {
-		panic(fmt.Errorf("cannot marshall value %T (%s): %s", value, value, err))
-	}
-	if o.ValuesOptions == nil {
-		o.ValuesOptions = &helmValues.Options{}
-	}
-	o.ValuesOptions.JSONValues = append(o.ValuesOptions.Values, fmt.Sprintf("%s=%s", key, jsonValue))
+	o.Values = o.Values.Set(key, value)
 	return o
 }
 
@@ -76,10 +63,10 @@ func (o *TemplateOptions) setDefaults(chart string) *TemplateOptions {
 		o.Release.IsInstall = true
 	}
 	if o.Capabilities == nil {
-		o.Capabilities = helmChartUtil.DefaultCapabilities
+		o.Capabilities = (*Capabilities)(helmChartUtil.DefaultCapabilities)
 	}
-	if o.ValuesOptions == nil {
-		o.ValuesOptions = &helmValues.Options{}
+	if o.Values == nil {
+		o.Values = NewValues()
 	}
 	return o
 }
@@ -97,7 +84,7 @@ func (o TemplateOptions) String() string {
 	if len(capArgs) > 0 {
 		args += " " + capArgs
 	}
-	valArgs := toValuesArgs(o.ValuesOptions)
+	valArgs := toValuesArgs(o.Values)
 	if len(valArgs) > 0 {
 		args += " " + valArgs
 	}
@@ -106,51 +93,4 @@ func (o TemplateOptions) String() string {
 	}
 	args += " <path-to-chart>"
 	return args
-}
-
-func toReleaseArgs(relOpts helmChartUtil.ReleaseOptions) string {
-	if relOpts.IsUpgrade {
-		return "--is-upgrade"
-	}
-	return ""
-}
-
-func toCapabilitiesArgs(capOpts *helmChartUtil.Capabilities) string {
-	if capOpts == nil || capOpts == helmChartUtil.DefaultCapabilities {
-		return ""
-	}
-	return fmt.Sprintf("--kube-version '%s'", capOpts.KubeVersion.Version)
-}
-
-func toValuesArgs(valOpts *helmValues.Options) string {
-	if valOpts == nil {
-		return ""
-	}
-	var args string
-	if len(valOpts.ValueFiles) > 0 {
-		for _, setArg := range valOpts.ValueFiles {
-			args += fmt.Sprintf(" -f %s", setArg)
-		}
-	}
-	if len(valOpts.Values) > 0 {
-		for _, setArg := range valOpts.Values {
-			args += fmt.Sprintf(" --set '%s'", setArg)
-		}
-	}
-	if len(valOpts.StringValues) > 0 {
-		for _, setArg := range valOpts.StringValues {
-			args += fmt.Sprintf(" --set-string '%s'", setArg)
-		}
-	}
-	if len(valOpts.FileValues) > 0 {
-		for _, setArg := range valOpts.FileValues {
-			args += fmt.Sprintf(" --set-file '%s'", setArg)
-		}
-	}
-	if len(valOpts.JSONValues) > 0 {
-		for _, setArg := range valOpts.JSONValues {
-			args += fmt.Sprintf(" --set-json '%s'", setArg)
-		}
-	}
-	return strings.TrimPrefix(args, " ")
 }
