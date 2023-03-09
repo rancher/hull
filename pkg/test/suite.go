@@ -1,6 +1,7 @@
 package test
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/aiyengar2/hull/pkg/chart"
@@ -9,16 +10,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var executionErrorRe = regexp.MustCompile(`execution error at \(.*\): (?P<inner>.*)`)
+
 type Suite struct {
 	ChartPath      string
+	DefaultValues  *chart.Values
 	TemplateChecks []TemplateCheck
 	Cases          []Case
+	FailureCases   []FailureCase
 }
 
 type Case struct {
 	Name            string
 	TemplateOptions *chart.TemplateOptions
 	ValueChecks     []ValueCheck
+}
+
+type FailureCase struct {
+	Name            string
+	TemplateOptions *chart.TemplateOptions
+
+	Covers         []string
+	FailureMessage string
 }
 
 func (s *Suite) setDefaults() *Suite {
@@ -28,6 +41,20 @@ func (s *Suite) setDefaults() *Suite {
 		}
 		if s.Cases[i].TemplateOptions.Values == nil {
 			s.Cases[i].TemplateOptions.Values = chart.NewValues()
+		}
+		if s.DefaultValues != nil {
+			s.Cases[i].TemplateOptions.Values = s.DefaultValues.MergeValues(s.Cases[i].TemplateOptions.Values)
+		}
+	}
+	for i := range s.FailureCases {
+		if s.FailureCases[i].TemplateOptions == nil {
+			s.FailureCases[i].TemplateOptions = &chart.TemplateOptions{}
+		}
+		if s.FailureCases[i].TemplateOptions.Values == nil {
+			s.FailureCases[i].TemplateOptions.Values = chart.NewValues()
+		}
+		if s.DefaultValues != nil {
+			s.FailureCases[i].TemplateOptions.Values = s.DefaultValues.MergeValues(s.FailureCases[i].TemplateOptions.Values)
 		}
 	}
 	return s
@@ -129,6 +156,32 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 					// do not fail out, you should still continue with other checks
 				}
 			}
+		})
+	}
+	for _, tc := range s.FailureCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			if !opts.Coverage.Disabled {
+				if err := coverageTracker.Record(tc.TemplateOptions, tc.Covers); err != nil {
+					t.Errorf("failed to track coverage: %s", err)
+					// do not fail out, you should still continue with other checks
+				}
+			}
+			t.Run("ShouldFailRender", func(t *testing.T) {
+				_, err := c.RenderTemplate(tc.TemplateOptions)
+				if err == nil {
+					t.Errorf("expected error message '%s', found no error", tc.FailureMessage)
+					return
+				}
+				errString := err.Error()
+				matches := executionErrorRe.FindStringSubmatch(errString)
+				executionErrorReInnerIndex := executionErrorRe.SubexpIndex("inner")
+				innerErrString := matches[executionErrorReInnerIndex]
+				if tc.FailureMessage != innerErrString {
+					t.Errorf("expected error message '%s', found '%s'", tc.FailureMessage, innerErrString)
+				} else {
+					t.Logf("successfully failed to render due to error: %s", errString)
+				}
+			})
 		})
 	}
 	if opts.Coverage.Disabled {

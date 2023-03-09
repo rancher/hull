@@ -15,3 +15,11 @@ metadata:
 data:
   config: |- 
 {{ .Values.data | toYaml | indent 4 }}
+---
+{{- if .Values.shouldFail }}
+{{- fail ".Values.shouldFail is set to true" }}
+{{- end }}
+---
+{{- if .Values.shouldFailRequired }}
+{{- required ".Values.shouldFailRequired is set to true" "" }}
+{{- end }}
