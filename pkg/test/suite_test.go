@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aiyengar2/hull/pkg/chart"
+	"github.com/aiyengar2/hull/pkg/checker"
 	"github.com/aiyengar2/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -92,7 +93,7 @@ func TestRun(t *testing.T) {
 			Name: "Example Chart With Cases And Nil Checks",
 			Suite: &Suite{
 				ChartPath: chartPath,
-				TemplateChecks: []TemplateCheck{
+				NamedChecks: []NamedCheck{
 					{
 						Name: "Noop",
 					},
@@ -101,11 +102,6 @@ func TestRun(t *testing.T) {
 					{
 						Name:            "Using Defaults",
 						TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace),
-						ValueChecks: []ValueCheck{
-							{
-								Name: "Noop",
-							},
-						},
 					},
 				},
 			},
@@ -146,23 +142,31 @@ func TestRun(t *testing.T) {
 	t.Run("Full Coverage", func(t *testing.T) {
 		suite := &Suite{
 			ChartPath: simpleChartPath,
+
+			NamedChecks: []NamedCheck{
+				{
+					Name:   "Noop",
+					Covers: []string{"templates/configmap.yaml"},
+					Checks: Checks{
+						checker.NewChainedCheckFunc[struct{}](nil),
+					},
+				},
+			},
+
 			Cases: []Case{
 				{
 					Name:            "Using Defaults",
 					TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace),
 				},
 				{
-					Name:            "Set Data",
-					TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace).SetValue("data.hello", "world"),
-					ValueChecks: []ValueCheck{
-						{
-							Name:   "Has Data Overridden",
-							Covers: []string{"templates/configmap.yaml"},
-							Func:   func(*testing.T, struct{}) {},
-						},
-					},
+					Name: "Set Data",
+					TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace).
+						Set("data", map[string]string{
+							"hello": "world",
+						}),
 				},
 			},
+
 			FailureCases: []FailureCase{
 				{
 					Name: "Set .Values.shouldFail",
@@ -195,21 +199,24 @@ func TestRun(t *testing.T) {
 
 	t.Run("OmitCases", func(t *testing.T) {
 		visitedTests := map[string]bool{}
-		collectTest := func(t *testing.T, _ struct{}) {
-			name := strings.TrimPrefix(t.Name(), "TestRun/OmitCases/")
+		collectTest := func(tc *checker.TestContext) {
+			name := strings.TrimPrefix(tc.T.Name(), "TestRun/OmitCases/")
 			visitedTests[name] = true
 		}
 		suite := &Suite{
 			ChartPath: chartPath,
-			TemplateChecks: []TemplateCheck{
+			NamedChecks: []NamedCheck{
 				{
-					Name: "Run On All",
-					Func: collectTest,
+					Name: "Default",
+					Checks: Checks{
+						checker.Once(collectTest),
+					},
 				},
 				{
-					Name:      "Omit Debug",
-					Func:      collectTest,
-					OmitCases: []string{"Using Debug"},
+					Name: "Collector",
+					Checks: Checks{
+						checker.Once(collectTest),
+					},
 				},
 			},
 			Cases: []Case{
@@ -229,6 +236,11 @@ func TestRun(t *testing.T) {
 					Name:            "Hello World",
 					TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace).SetValue("args[0]", "--debug"),
 				},
+				{
+					Name:            "Omit Collector",
+					TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace).SetValue("args[0]", "--debug"),
+					OmitNamedChecks: []string{"Collector"},
+				},
 			},
 		}
 		opts := &SuiteOptions{
@@ -246,16 +258,15 @@ func TestRun(t *testing.T) {
 		}
 		sort.Strings(visitedTestsSlice)
 		assert.Equal(t, []string{
-			"Another_Case/Omit_Debug",
-			"Another_Case/Run_On_All",
-
-			"Hello_World/Omit_Debug",
-			"Hello_World/Run_On_All",
-
-			"Using_Debug/Run_On_All",
-
-			"Using_Defaults/Omit_Debug",
-			"Using_Defaults/Run_On_All",
+			"Another_Case/Collector",
+			"Another_Case/Default",
+			"Hello_World/Collector",
+			"Hello_World/Default",
+			"Omit_Collector/Default",
+			"Using_Debug/Collector",
+			"Using_Debug/Default",
+			"Using_Defaults/Collector",
+			"Using_Defaults/Default",
 		}, visitedTestsSlice)
 	})
 }

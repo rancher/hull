@@ -5,11 +5,10 @@ import (
 	"github.com/aiyengar2/hull/pkg/checker"
 	"github.com/aiyengar2/hull/pkg/test"
 	"github.com/aiyengar2/hull/pkg/utils"
-	"github.com/rancher/wrangler/pkg/relatedresource"
 	"github.com/stretchr/testify/assert"
 
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var ChartPath = utils.MustGetPathFromModuleRoot("..", "testdata", "charts", "example-chart")
@@ -22,46 +21,6 @@ var (
 var suite = test.Suite{
 	ChartPath: ChartPath,
 
-	TemplateChecks: []test.TemplateCheck{
-		{
-			Name: "All Deployments Have ServiceAccount",
-			Func: checker.NewCheckFunc(
-				checker.OnResources(func(tc *checker.TestContext, deployments []*appsv1.Deployment) {
-					serviceAccountsToCheck := map[relatedresource.Key]bool{}
-					for _, deployment := range deployments {
-						key := relatedresource.NewKey(
-							deployment.Namespace,
-							deployment.Spec.Template.Spec.ServiceAccountName,
-						)
-						serviceAccountsToCheck[key] = false
-					}
-					checker.Store(tc, "ServiceAccountsToCheck", serviceAccountsToCheck)
-				}),
-				checker.OnResources(func(tc *checker.TestContext, serviceAccounts []*corev1.ServiceAccount) {
-					serviceAccountsToCheck, ok := checker.Get[string, map[relatedresource.Key]bool](tc, "ServiceAccountsToCheck")
-					if !ok {
-						return
-					}
-					for _, serviceAccount := range serviceAccounts {
-						key := relatedresource.NewKey(serviceAccount.Namespace, serviceAccount.Name)
-						_, ok := serviceAccountsToCheck[key]
-						if !ok {
-							continue
-						}
-						serviceAccountsToCheck[key] = true
-					}
-					for key, exists := range serviceAccountsToCheck {
-						if exists {
-							tc.T.Logf("serviceaccount %s exists in this Helm chart", key)
-						} else {
-							tc.T.Errorf("serviceaccount %s is not in this chart", key)
-						}
-					}
-				}),
-			),
-		},
-	},
-
 	Cases: []test.Case{
 		{
 			Name: "Using Defaults",
@@ -69,24 +28,51 @@ var suite = test.Suite{
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace),
 		},
 		{
-			Name: "Setting .Values.args[0] to --debug",
+			Name: "Set .Values.args[0] to --debug",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).SetValue("args[0]", "--debug"),
+		},
+		{
+			Name: "Set .Values.args[0] to --trace",
 
-			ValueChecks: []test.ValueCheck{
-				{
-					Name: "Passes --debug Flag To Deployment",
-					Covers: []string{
-						"templates/deployment.yaml",
-					},
-					Func: checker.NewCheckFunc(
-						checker.PerResource(func(tc *checker.TestContext, deployment *appsv1.Deployment) {
-							for _, container := range deployment.Spec.Template.Spec.Containers {
-								assert.Equal(tc.T, []string{"--debug"}, container.Args, "container %s in Deployment %s/%s does not have debug", container.Name, deployment.Namespace, deployment.Name)
-							}
-						}),
-					),
-				},
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).SetValue("args[0]", "--trace"),
+		},
+	},
+
+	NamedChecks: []test.NamedCheck{
+		{
+			Name: "All Deployments Have ServiceAccount",
+		},
+		{
+			Name: "Check Container Args",
+			Covers: []string{
+				"templates/deployment.yaml",
+			},
+
+			Checks: test.Checks{
+				checker.PerWorkload(func(tc *checker.TestContext, obj metav1.Object, podTemplateSpec corev1.PodTemplateSpec) {
+					if obj.GetNamespace() != checker.MustRenderValue[string](tc, ".Release.Namespace") {
+						return
+					}
+					if obj.GetName() != checker.MustRenderValue[string](tc, ".Release.Name") {
+						return
+					}
+					expectedArgs := checker.MustRenderValue[[]string](tc, ".Values.args")
+					for _, container := range podTemplateSpec.Spec.Containers {
+						if len(expectedArgs) == 0 {
+							assert.Nil(tc.T, container.Args,
+								"expected container %s in %T %s to have no args",
+								container.Name, obj, checker.Key(obj),
+							)
+						} else {
+							assert.Equal(tc.T,
+								expectedArgs, container.Args,
+								"container %s in %T %s does not have correct args",
+								container.Name, obj, checker.Key(obj),
+							)
+						}
+					}
+				}),
 			},
 		},
 	},

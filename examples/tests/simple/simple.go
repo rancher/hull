@@ -3,6 +3,7 @@ package simple
 import (
 	"github.com/aiyengar2/hull/pkg/chart"
 	"github.com/aiyengar2/hull/pkg/checker"
+	"github.com/aiyengar2/hull/pkg/extract"
 	"github.com/aiyengar2/hull/pkg/test"
 	"github.com/aiyengar2/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
@@ -20,8 +21,6 @@ var (
 var suite = test.Suite{
 	ChartPath: ChartPath,
 
-	TemplateChecks: []test.TemplateCheck{},
-
 	Cases: []test.Case{
 		{
 			Name: "Using Defaults",
@@ -33,22 +32,29 @@ var suite = test.Suite{
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
 				Set("data", map[string]string{"hello": "cattle"}),
+		},
+	},
 
-			ValueChecks: []test.ValueCheck{
-				{
-					Name: "Has hello: cattle in ConfigMap",
-					Covers: []string{
-						"templates/configmap.yaml",
-					},
-					Func: checker.NewCheckFunc(
-						checker.PerResource(func(tc *checker.TestContext, configmap *corev1.ConfigMap) {
-							assert.Equal(tc.T, map[string]string{"config": "hello: cattle"}, configmap.Data)
-						}),
-					),
-				},
+	NamedChecks: []test.NamedCheck{
+		{
+			Name:   "ConfigMaps have expected data",
+			Covers: []string{"templates/configmap.yaml"},
+			Checks: test.Checks{
+				checker.PerResource(func(tc *checker.TestContext, configmap *corev1.ConfigMap) {
+					// ensure config key always exists
+					configData, configDataExists := extract.Field[string](configmap.Data, "config")
+					assert.True(tc.T, configDataExists, "missing key 'config' in %T %s", configmap, checker.Key(configmap))
+
+					// ensure .Values.data is always in ConfigMap
+					valuesData := checker.ToYAML(
+						checker.MustRenderValue[map[string]string](tc, ".Values.data"),
+					)
+					assert.Equal(tc.T, valuesData, configData, "key 'config' in %T %s has unexpected data", configmap, checker.Key(configmap))
+				}),
 			},
 		},
 	},
+
 	FailureCases: []test.FailureCase{
 		{
 			Name: "Set .Values.shouldFail",
