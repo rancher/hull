@@ -37,8 +37,12 @@ var suite = test.Suite{
 
 	NamedChecks: []test.NamedCheck{
 		{
-			Name:   "ConfigMaps have expected data",
-			Covers: []string{"templates/configmap.yaml"},
+			Name: "ConfigMaps have expected data",
+
+			Covers: []string{
+				".Values.data",
+			},
+
 			Checks: test.Checks{
 				checker.PerResource(func(tc *checker.TestContext, configmap *corev1.ConfigMap) {
 					// ensure config key always exists
@@ -63,7 +67,7 @@ var suite = test.Suite{
 				SetValue("shouldFail", "true"),
 
 			Covers: []string{
-				"templates/configmap.yaml",
+				".Values.shouldFail",
 			},
 
 			FailureMessage: ".Values.shouldFail is set to true",
@@ -75,7 +79,7 @@ var suite = test.Suite{
 				SetValue("shouldFailRequired", "true"),
 
 			Covers: []string{
-				"templates/configmap.yaml",
+				".Values.shouldFailRequired",
 			},
 
 			FailureMessage: ".Values.shouldFailRequired is set to true",

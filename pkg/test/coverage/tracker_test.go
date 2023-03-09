@@ -54,20 +54,18 @@ func TestTracker(t *testing.T) {
 			},
 
 			Expect: &Tracker{
-				FieldUsage: map[string]TemplateTracker{
+				FieldUsage: FieldTracker{
 					".Values.hello": {
-						"configmap.yaml": false,
-						"complex.yaml":   false,
+						Templates: []string{"complex.yaml", "configmap.yaml"},
 					},
 					".Values.world": {
-						"deployment.yaml": false,
-						"complex.yaml":    false,
+						Templates: []string{"complex.yaml", "deployment.yaml"},
 					},
-					".Values.cattle": {
-						"example-chart.name : system_default_registry : complex.yaml": false,
+					".Values.cattle : example-chart.name : system_default_registry": {
+						Templates: []string{"complex.yaml"},
 					},
-					".Values.rancher": {
-						"system_default_registry : complex.yaml": false,
+					".Values.rancher : system_default_registry": {
+						Templates: []string{"complex.yaml"},
 					},
 				},
 			},
@@ -101,97 +99,33 @@ func TestTracker(t *testing.T) {
 			Records: []Record{
 				{
 					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("hello", "world"),
-					Covers:          []string{"configmap.yaml"},
-				},
-				{
-					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("world", "hello"),
-					Covers:          []string{"deployment.yaml"},
+					Covers:          []string{".Values.hello"},
 				},
 				{
 					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("rancher", "hello"),
-					Covers:          []string{"complex.yaml"},
+					Covers:          []string{".Values.rancher"},
 				},
 			},
 
 			Expect: &Tracker{
-				FieldUsage: map[string]TemplateTracker{
+				FieldUsage: FieldTracker{
 					".Values.hello": {
-						"configmap.yaml": true,
-						"complex.yaml":   false,
+						Templates: []string{"complex.yaml", "configmap.yaml"},
+						covered:   true,
 					},
 					".Values.world": {
-						"deployment.yaml": true,
-						"complex.yaml":    false,
+						Templates: []string{"complex.yaml", "deployment.yaml"},
 					},
-					".Values.cattle": {
-						"example-chart.name : system_default_registry : complex.yaml": false,
+					".Values.cattle : example-chart.name : system_default_registry": {
+						Templates: []string{"complex.yaml"},
 					},
-					".Values.rancher": {
-						"system_default_registry : complex.yaml": true,
+					".Values.rancher : system_default_registry": {
+						Templates: []string{"complex.yaml"},
+						covered:   true,
 					},
 				},
 			},
 			Coverage: float64(3) / float64(6),
-		},
-		{
-			Name: "Usage With Partial Coverage With Globs",
-			Usage: &tpl.TemplateUsage{
-				Files: map[string]*parse.Result{
-					"configmap.yaml": {
-						Fields: []string{".Capabilities.KubeVersion", ".Values.hello"},
-					},
-					"deployment.yaml": {
-						Fields: []string{".Chart.Name", ".Release.Namespace", ".Values.world"},
-					},
-					"complex.yaml": {
-						Fields:        []string{".Values.hello", ".Values.world"},
-						TemplateCalls: []string{"system_default_registry"},
-					},
-				},
-				NamedTemplates: map[string]*parse.Result{
-					"system_default_registry": {
-						Fields:        []string{".Values.rancher"},
-						TemplateCalls: []string{"example-chart.name"},
-					},
-					"example-chart.name": {
-						Fields: []string{".Values.cattle"},
-					},
-				},
-			},
-			Records: []Record{
-				{
-					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("hello", "world"),
-					Covers:          []string{"*"},
-				},
-				{
-					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("world", "hello"),
-					Covers:          []string{"*"},
-				},
-				{
-					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("rancher", "hello"),
-					Covers:          []string{"*"},
-				},
-			},
-
-			Expect: &Tracker{
-				FieldUsage: map[string]TemplateTracker{
-					".Values.hello": {
-						"configmap.yaml": true,
-						"complex.yaml":   true,
-					},
-					".Values.world": {
-						"deployment.yaml": true,
-						"complex.yaml":    true,
-					},
-					".Values.cattle": {
-						"example-chart.name : system_default_registry : complex.yaml": false,
-					},
-					".Values.rancher": {
-						"system_default_registry : complex.yaml": true,
-					},
-				},
-			},
-			Coverage: float64(5) / float64(6),
 		},
 		{
 			Name: "Usage With Partial Coverage And Bad Tests",
@@ -221,19 +155,19 @@ func TestTracker(t *testing.T) {
 			Records: []Record{
 				{
 					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("hello", "world"),
-					Covers:          []string{"*"},
+					Covers:          []string{".Values.rancher"},
 				},
 				{
 					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("world", "hello"),
-					Covers:          []string{"*"},
+					Covers:          []string{".Values.world"},
 				},
 				{
 					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("rancher", "hello"),
-					Covers:          []string{"*"},
+					Covers:          []string{".Values.hello"},
 				},
 				{
 					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("doesNot", "exist"),
-					Covers:          []string{"*"},
+					Covers:          []string{".Values.hello"},
 				},
 				{
 					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("doesNot", "exist"),
@@ -241,36 +175,35 @@ func TestTracker(t *testing.T) {
 				},
 				{
 					TemplateOptions: &chart.TemplateOptions{},
-					Covers:          []string{"*"},
+					Covers:          []string{".Values.rancher"},
 				},
 				{
 					TemplateOptions: nil,
-					Covers:          []string{"*"},
+					Covers:          []string{"random-string"},
 				},
 			},
 
 			Expect: &Tracker{
-				FieldUsage: map[string]TemplateTracker{
+				FieldUsage: FieldTracker{
 					".Values.hello": {
-						"configmap.yaml": true,
-						"complex.yaml":   true,
+						Templates: []string{"complex.yaml", "configmap.yaml"},
 					},
 					".Values.world": {
-						"deployment.yaml": true,
-						"complex.yaml":    true,
+						Templates: []string{"complex.yaml", "deployment.yaml"},
+						covered:   true,
 					},
-					".Values.cattle": {
-						"example-chart.name : system_default_registry : complex.yaml": false,
+					".Values.cattle : example-chart.name : system_default_registry": {
+						Templates: []string{"complex.yaml"},
 					},
-					".Values.rancher": {
-						"system_default_registry : complex.yaml": true,
+					".Values.rancher : system_default_registry": {
+						Templates: []string{"complex.yaml"},
 					},
 				},
 			},
-			Coverage: float64(5) / float64(6),
+			Coverage: float64(2) / float64(6),
 		},
 		{
-			Name: "Usage With Full Coverage Without Globs",
+			Name: "Usage With Full Coverage",
 			Usage: &tpl.TemplateUsage{
 				Files: map[string]*parse.Result{
 					"configmap.yaml": {
@@ -297,44 +230,46 @@ func TestTracker(t *testing.T) {
 			Records: []Record{
 				{
 					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("hello", "world"),
-					Covers:          []string{"configmap.yaml", "complex.yaml"},
+					Covers:          []string{".Values.hello"},
 				},
 				{
-					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("world", "hello"),
-					Covers:          []string{"complex.yaml", "deployment.yaml"},
+					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("world", "cattle"),
+					Covers:          []string{".Values.world"},
 				},
 				{
-					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("rancher", "hello"),
-					Covers:          []string{"complex.yaml"},
+					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("cattle", "hello"),
+					Covers:          []string{".Values.cattle"},
 				},
 				{
-					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("cattle", "world"),
-					Covers:          []string{"complex.yaml"},
+					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("rancher", "cattle"),
+					Covers:          []string{".Values.rancher"},
 				},
 			},
 
 			Expect: &Tracker{
-				FieldUsage: map[string]TemplateTracker{
+				FieldUsage: FieldTracker{
 					".Values.hello": {
-						"configmap.yaml": true,
-						"complex.yaml":   true,
+						Templates: []string{"complex.yaml", "configmap.yaml"},
+						covered:   true,
 					},
 					".Values.world": {
-						"deployment.yaml": true,
-						"complex.yaml":    true,
+						Templates: []string{"complex.yaml", "deployment.yaml"},
+						covered:   true,
 					},
-					".Values.cattle": {
-						"example-chart.name : system_default_registry : complex.yaml": true,
+					".Values.cattle : example-chart.name : system_default_registry": {
+						Templates: []string{"complex.yaml"},
+						covered:   true,
 					},
-					".Values.rancher": {
-						"system_default_registry : complex.yaml": true,
+					".Values.rancher : system_default_registry": {
+						Templates: []string{"complex.yaml"},
+						covered:   true,
 					},
 				},
 			},
 			Coverage: 1,
 		},
 		{
-			Name: "Usage With Full Coverage With Globs",
+			Name: "Usage With Full Coverage With Templates",
 			Usage: &tpl.TemplateUsage{
 				Files: map[string]*parse.Result{
 					"configmap.yaml": {
@@ -361,37 +296,39 @@ func TestTracker(t *testing.T) {
 			Records: []Record{
 				{
 					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("hello", "world"),
-					Covers:          []string{"*"},
+					Covers:          []string{".Values.hello"},
 				},
 				{
-					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("world", "hello"),
-					Covers:          []string{"*"},
+					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("world", "cattle"),
+					Covers:          []string{".Values.world"},
 				},
 				{
-					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("rancher", "hello"),
-					Covers:          []string{"*"},
+					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("cattle", "hello"),
+					Covers:          []string{"example-chart.name"},
 				},
 				{
-					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("cattle", "world"),
-					Covers:          []string{"*"},
+					TemplateOptions: chart.NewTemplateOptions("example-chart", "default").SetValue("rancher", "cattle"),
+					Covers:          []string{"system_default_registry"},
 				},
 			},
 
 			Expect: &Tracker{
-				FieldUsage: map[string]TemplateTracker{
+				FieldUsage: FieldTracker{
 					".Values.hello": {
-						"configmap.yaml": true,
-						"complex.yaml":   true,
+						Templates: []string{"complex.yaml", "configmap.yaml"},
+						covered:   true,
 					},
 					".Values.world": {
-						"deployment.yaml": true,
-						"complex.yaml":    true,
+						Templates: []string{"complex.yaml", "deployment.yaml"},
+						covered:   true,
 					},
-					".Values.cattle": {
-						"example-chart.name : system_default_registry : complex.yaml": true,
+					".Values.cattle : example-chart.name : system_default_registry": {
+						Templates: []string{"complex.yaml"},
+						covered:   true,
 					},
-					".Values.rancher": {
-						"system_default_registry : complex.yaml": true,
+					".Values.rancher : system_default_registry": {
+						Templates: []string{"complex.yaml"},
+						covered:   true,
 					},
 				},
 			},
@@ -407,7 +344,9 @@ func TestTracker(t *testing.T) {
 				},
 			},
 			Records: []Record{},
-			Expect:  &Tracker{},
+			Expect: &Tracker{
+				FieldUsage: NewFieldTracker(),
+			},
 		},
 	}
 	for _, tc := range testCases {

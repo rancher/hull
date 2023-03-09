@@ -46,7 +46,7 @@ var suite = test.Suite{
 		{
 			Name: "Check Container Args",
 			Covers: []string{
-				"templates/deployment.yaml",
+				".Values.args",
 			},
 
 			Checks: test.Checks{
