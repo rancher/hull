@@ -176,4 +176,74 @@ func TestNewCheckFunc(t *testing.T) {
 			checkFuncVal.Call(args)
 		})
 	}
+
+	t.Run("Do Not Continue After Failure", func(t *testing.T) {
+		fakeT := &testing.T{}
+		args := []reflect.Value{
+			reflect.ValueOf(fakeT),
+			reflect.ValueOf(objs),
+		}
+		var reached bool
+		checks := []ChainedCheckFunc{
+			Once(func(tc *TestContext) {
+				assert.Fail(tc.T, "initiate failure")
+			}),
+			Once(func(_ *TestContext) {
+				reached = true
+			}),
+		}
+		checkFunc := NewCheckFunc(checks...)
+		checkFuncVal := reflect.ValueOf(checkFunc)
+		checkFuncVal.Call(args)
+
+		assert.False(t, reached, "should not have continued")
+		assert.True(t, fakeT.Failed(), "should have failed")
+	})
+
+	t.Run("Do Not Continue After Failure Again", func(t *testing.T) {
+		fakeT := &testing.T{}
+		args := []reflect.Value{
+			reflect.ValueOf(fakeT),
+			reflect.ValueOf(objs),
+		}
+		var reached bool
+		checks := []ChainedCheckFunc{
+			NewChainedCheckFunc(func(tc *TestContext, _ struct{}) {
+				assert.Fail(tc.T, "initiate failure")
+			}),
+			Once(func(_ *TestContext) {
+				reached = true
+			}),
+		}
+		checkFunc := NewCheckFunc(checks...)
+		checkFuncVal := reflect.ValueOf(checkFunc)
+		checkFuncVal.Call(args)
+
+		assert.False(t, reached, "should not have continued")
+		assert.True(t, fakeT.Failed(), "should have failed")
+	})
+
+	t.Run("Continue On Failure", func(t *testing.T) {
+		fakeT := &testing.T{}
+		args := []reflect.Value{
+			reflect.ValueOf(fakeT),
+			reflect.ValueOf(objs),
+		}
+		var reached bool
+		checks := []ChainedCheckFunc{
+			Once(func(tc *TestContext) {
+				assert.Fail(tc.T, "initiate failure")
+				tc.Continue()
+			}),
+			Once(func(_ *TestContext) {
+				reached = true
+			}),
+		}
+		checkFunc := NewCheckFunc(checks...)
+		checkFuncVal := reflect.ValueOf(checkFunc)
+		checkFuncVal.Call(args)
+
+		assert.True(t, reached, "did not continue")
+		assert.True(t, fakeT.Failed(), "should have failed")
+	})
 }

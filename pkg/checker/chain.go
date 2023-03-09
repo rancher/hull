@@ -15,6 +15,10 @@ func NewCheckFunc(funcs ...ChainedCheckFunc) CheckFunc {
 		for _, f := range funcs {
 			checkFunc := f(tc)
 			if checkFunc == nil {
+				if !tc.continueExecution && tc.T.Failed() {
+					break
+				}
+				tc.continueExecution = false
 				continue
 			}
 			doFunc := internal.WrapFunc(checkFunc, &internal.ParseOptions{
@@ -25,9 +29,10 @@ func NewCheckFunc(funcs ...ChainedCheckFunc) CheckFunc {
 				objs[i] = unstructured
 			}
 			doFunc(tc.T, objs)
-			if tc.T.Failed() {
+			if !tc.continueExecution && tc.T.Failed() {
 				break
 			}
+			tc.continueExecution = false
 		}
 	}
 }
