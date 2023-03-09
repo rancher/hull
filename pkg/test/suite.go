@@ -5,23 +5,24 @@ import (
 	"testing"
 
 	"github.com/aiyengar2/hull/pkg/chart"
+	"github.com/aiyengar2/hull/pkg/checker"
 	"github.com/aiyengar2/hull/pkg/test/coverage"
 	"github.com/aiyengar2/hull/pkg/tpl"
 	"github.com/stretchr/testify/assert"
 )
 
 type Suite struct {
-	ChartPath      string
-	DefaultValues  *chart.Values
-	TemplateChecks []TemplateCheck
-	Cases          []Case
-	FailureCases   []FailureCase
+	ChartPath     string
+	DefaultValues *chart.Values
+	NamedChecks   []NamedCheck
+	Cases         []Case
+	FailureCases  []FailureCase
 }
 
 type Case struct {
 	Name            string
 	TemplateOptions *chart.TemplateOptions
-	ValueChecks     []ValueCheck
+	OmitNamedChecks []string
 }
 
 type FailureCase struct {
@@ -122,6 +123,16 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 				t.Errorf("failed to render template: %s", err)
 				return
 			}
+			renderValues, err := c.RenderValues(tc.TemplateOptions)
+			if err != nil {
+				t.Errorf("failed to render values: %s", err)
+				return
+			}
+			beforeChecks := Checks{
+				checker.Once(func(tctx *checker.TestContext) {
+					tctx.RenderValues = renderValues
+				}),
+			}
 			t.Run("HelmLint", func(t *testing.T) {
 				template.HelmLint(t, opts.HelmLint)
 			})
@@ -130,29 +141,28 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 					template.YamlLint(t, opts.YAMLLint.Configuration)
 				})
 			}
-			for _, check := range s.TemplateChecks {
+			for _, check := range s.NamedChecks {
 				// skip cases if necessary
 				var skip bool
-				for _, omitCase := range check.OmitCases {
-					if tc.Name == omitCase {
+				for _, omitCase := range tc.OmitNamedChecks {
+					if check.Name == omitCase {
 						skip = true
 					}
 				}
 				if skip {
 					continue
 				}
-				t.Run(check.Name, func(t *testing.T) {
-					template.Check(t, check.Func)
-				})
-			}
-			for _, check := range tc.ValueChecks {
-				t.Run(check.Name, func(t *testing.T) {
-					template.Check(t, check.Func)
-				})
-				if err := coverageTracker.Record(tc.TemplateOptions, check.Covers); err != nil {
-					t.Errorf("failed to track coverage: %s", err)
-					// do not fail out, you should still continue with other checks
+				if !opts.Coverage.Disabled {
+					if err := coverageTracker.Record(tc.TemplateOptions, check.Covers); err != nil {
+						t.Errorf("failed to track coverage: %s", err)
+						// do not fail out, you should still continue with other checks
+					}
 				}
+				t.Run(check.Name, func(t *testing.T) {
+					template.Check(t, checker.NewCheckFunc(
+						append(beforeChecks, check.Checks...)...,
+					))
+				})
 			}
 		})
 	}
