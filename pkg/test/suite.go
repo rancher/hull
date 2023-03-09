@@ -7,6 +7,8 @@ import (
 	"github.com/aiyengar2/hull/pkg/test/coverage"
 	"github.com/aiyengar2/hull/pkg/tpl"
 	"github.com/stretchr/testify/assert"
+
+	helmValues "helm.sh/helm/v3/pkg/cli/values"
 )
 
 type Suite struct {
@@ -19,6 +21,18 @@ type Case struct {
 	Name            string
 	TemplateOptions *chart.TemplateOptions
 	ValueChecks     []ValueCheck
+}
+
+func (s *Suite) setDefaults() *Suite {
+	for i := range s.Cases {
+		if s.Cases[i].TemplateOptions == nil {
+			s.Cases[i].TemplateOptions = &chart.TemplateOptions{}
+		}
+		if s.Cases[i].TemplateOptions.ValuesOptions == nil {
+			s.Cases[i].TemplateOptions.ValuesOptions = &helmValues.Options{}
+		}
+	}
+	return s
 }
 
 func GetRancherOptions() *SuiteOptions {
@@ -38,7 +52,8 @@ type SuiteOptions struct {
 }
 
 type YamlLintOptions struct {
-	Enabled bool
+	Enabled       bool
+	Configuration string
 }
 
 type CoverageOptions struct {
@@ -53,10 +68,14 @@ func (o *SuiteOptions) setDefaults() *SuiteOptions {
 	if o.HelmLint == nil {
 		o.HelmLint = &chart.HelmLintOptions{}
 	}
+	if len(o.YAMLLint.Configuration) == 0 {
+		o.YAMLLint.Configuration = chart.DefaultYamllintConf
+	}
 	return o
 }
 
 func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
+	s = s.setDefaults()
 	opts = opts.setDefaults()
 	c, err := chart.NewChart(s.ChartPath)
 	if err != nil {
@@ -68,8 +87,8 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 		t.Error(err)
 		return
 	}
-	assert.NotNil(t, templateUsage)
-	if t.Failed() {
+	if templateUsage == nil {
+		t.Errorf("templateUsage is nil")
 		return
 	}
 	coverageTracker := coverage.NewTracker(templateUsage, opts.Coverage.IncludeSubcharts)
@@ -84,7 +103,9 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 				template.HelmLint(t, opts.HelmLint)
 			})
 			if opts.YAMLLint.Enabled {
-				t.Run("YamlLint", template.YamlLint)
+				t.Run("YamlLint", func(t *testing.T) {
+					template.YamlLint(t, opts.YAMLLint.Configuration)
+				})
 			}
 			for _, check := range s.TemplateChecks {
 				// skip cases if necessary

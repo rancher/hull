@@ -1,4 +1,4 @@
-package example
+package simple
 
 import (
 	"github.com/aiyengar2/hull/pkg/chart"

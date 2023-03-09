@@ -96,7 +96,7 @@ func TestTemplate(t *testing.T) {
 		assert.NotNil(t, template.GetValues())
 
 		fakeT := &testing.T{}
-		template.YamlLint(fakeT)
+		template.YamlLint(fakeT, DefaultYamllintConf)
 		assert.Equal(t, tc.ShouldFailYamlLint, fakeT.Failed())
 
 		fakeT = &testing.T{}
@@ -120,7 +120,7 @@ func TestYamlLint(t *testing.T) {
 	testTemplate.ObjectSets = nil
 	t.Run("Should pass on nil ObjectSets", func(t *testing.T) {
 		fakeT := &testing.T{}
-		testTemplate.yamlLint(fakeT, "")
+		testTemplate.yamlLint(fakeT, "", DefaultYamllintConf)
 		assert.False(t, fakeT.Failed())
 	})
 
@@ -128,7 +128,7 @@ func TestYamlLint(t *testing.T) {
 	testTemplate.ObjectSets = make(map[string]*objectset.ObjectSet)
 	t.Run("Should pass on non-nil but empty ObjectSets", func(t *testing.T) {
 		fakeT := &testing.T{}
-		testTemplate.yamlLint(fakeT, "")
+		testTemplate.yamlLint(fakeT, "", DefaultYamllintConf)
 		assert.False(t, fakeT.Failed())
 	})
 
@@ -136,7 +136,7 @@ func TestYamlLint(t *testing.T) {
 	testTemplate.Files = make(map[string]string)
 	t.Run("Should fail on not finding the template file associated with objects", func(t *testing.T) {
 		fakeT := &testing.T{}
-		testTemplate.yamlLint(fakeT, "")
+		testTemplate.yamlLint(fakeT, "", DefaultYamllintConf)
 		assert.True(t, fakeT.Failed())
 	})
 
@@ -154,7 +154,7 @@ func TestYamlLint(t *testing.T) {
 	}
 	t.Run("Should fail on a bad YAML file", func(t *testing.T) {
 		fakeT := &testing.T{}
-		testTemplate.yamlLint(fakeT, "bad.yaml")
+		testTemplate.yamlLint(fakeT, "bad.yaml", DefaultYamllintConf)
 		assert.True(t, fakeT.Failed())
 	})
 }
