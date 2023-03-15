@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	helmChart "helm.sh/helm/v3/pkg/chart"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func TestTestContext(t *testing.T) {
@@ -72,6 +73,14 @@ func TestTestContext(t *testing.T) {
 			"data": map[string]interface{}{
 				"hello": "world",
 			},
+			"struct": corev1.ConfigMap{
+				Data: map[string]string{"hello": "world"},
+			},
+			"pointer": &corev1.ConfigMap{
+				Data: map[string]string{"hello": "world"},
+			},
+			"empty": &corev1.ConfigMap{},
+			"unset": (*corev1.ConfigMap)(nil),
 		},
 	}
 	t.Run("MustRenderValue When Set Struct", func(t *testing.T) {
@@ -92,6 +101,46 @@ func TestTestContext(t *testing.T) {
 		value, found := RenderValue[map[string]interface{}](tc, ".Values.data")
 		assert.True(t, found)
 		assert.Equal(t, map[string]interface{}{"hello": "world"}, value)
+	})
+	t.Run("RenderValue From Struct to Struct", func(t *testing.T) {
+		value, found := RenderValue[corev1.ConfigMap](tc, ".Values.struct")
+		assert.True(t, found)
+		assert.Equal(t, map[string]string{"hello": "world"}, value.Data)
+	})
+	t.Run("RenderValue From Struct to Pointer", func(t *testing.T) {
+		value, found := RenderValue[*corev1.ConfigMap](tc, ".Values.struct")
+		assert.True(t, found)
+		assert.Equal(t, map[string]string{"hello": "world"}, value.Data)
+	})
+	t.Run("RenderValue From Pointer To Struct", func(t *testing.T) {
+		value, found := RenderValue[corev1.ConfigMap](tc, ".Values.pointer")
+		assert.True(t, found)
+		assert.Equal(t, map[string]string{"hello": "world"}, value.Data)
+	})
+	t.Run("RenderValue From Pointer to Pointer", func(t *testing.T) {
+		value, found := RenderValue[*corev1.ConfigMap](tc, ".Values.pointer")
+		assert.True(t, found)
+		assert.Equal(t, map[string]string{"hello": "world"}, value.Data)
+	})
+	t.Run("RenderValue From Nil Pointer to Struct", func(t *testing.T) {
+		value, found := RenderValue[*corev1.ConfigMap](tc, ".Values.unsetr")
+		assert.False(t, found)
+		assert.Zero(t, value)
+	})
+	t.Run("RenderValue From Nil Pointer to Pointer", func(t *testing.T) {
+		value, found := RenderValue[*corev1.ConfigMap](tc, ".Values.unset")
+		assert.False(t, found)
+		assert.Zero(t, value)
+	})
+	t.Run("RenderValue From Empty Pointer to Struct", func(t *testing.T) {
+		value, found := RenderValue[*corev1.ConfigMap](tc, ".Values.empty")
+		assert.False(t, found)
+		assert.Zero(t, *value)
+	})
+	t.Run("RenderValue From Empty Pointer to Pointer", func(t *testing.T) {
+		value, found := RenderValue[*corev1.ConfigMap](tc, ".Values.empty")
+		assert.False(t, found)
+		assert.Zero(t, *value)
 	})
 	t.Run("Convert RenderValue Type To String Map", func(t *testing.T) {
 		value, found := RenderValue[map[string]string](tc, ".Values.data")

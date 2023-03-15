@@ -41,13 +41,12 @@ func RenderValue[O interface{}](tc *TestContext, path string) (O, bool) {
 		return val, ok
 	}
 	rVal := reflect.ValueOf(val)
+	if rVal.IsZero() {
+		return val, false
+	}
 	switch rKind := rVal.Kind(); rKind {
 	case reflect.Pointer, reflect.Slice, reflect.Map, reflect.Interface:
 		if reflect.Indirect(rVal).IsZero() {
-			return val, false
-		}
-	default:
-		if rVal.IsZero() {
 			return val, false
 		}
 	}
