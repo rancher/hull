@@ -2,6 +2,7 @@ package checker
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/aiyengar2/hull/pkg/extract"
@@ -35,7 +36,21 @@ func Get[K comparable, V interface{}](tc *TestContext, key K) (V, bool) {
 }
 
 func RenderValue[O interface{}](tc *TestContext, path string) (O, bool) {
-	return extract.Field[O](tc.RenderValues, path)
+	val, ok := extract.Field[O](tc.RenderValues, path)
+	if !ok {
+		return val, ok
+	}
+	rVal := reflect.ValueOf(val)
+	if rVal.IsZero() {
+		return val, false
+	}
+	switch rKind := rVal.Kind(); rKind {
+	case reflect.Pointer, reflect.Slice, reflect.Map, reflect.Interface:
+		if reflect.Indirect(rVal).IsZero() {
+			return val, false
+		}
+	}
+	return val, true
 }
 
 func MustRenderValue[O interface{}](tc *TestContext, path string) O {
