@@ -3,7 +3,6 @@ package simple
 import (
 	"github.com/aiyengar2/hull/pkg/chart"
 	"github.com/aiyengar2/hull/pkg/checker"
-	"github.com/aiyengar2/hull/pkg/extract"
 	"github.com/aiyengar2/hull/pkg/test"
 	"github.com/aiyengar2/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
@@ -45,15 +44,17 @@ var suite = test.Suite{
 
 			Checks: test.Checks{
 				checker.PerResource(func(tc *checker.TestContext, configmap *corev1.ConfigMap) {
-					// ensure config key always exists
-					configData, configDataExists := extract.Field[string](configmap.Data, "config")
-					assert.True(tc.T, configDataExists, "missing key 'config' in %T %s", configmap, checker.Key(configmap))
-
-					// ensure .Values.data is always in ConfigMap
-					valuesData := checker.ToYAML(
-						checker.MustRenderValue[map[string]string](tc, ".Values.data"),
+					assert.Contains(tc.T,
+						configmap.Data, "config",
+						"%T %s does not have 'config' key", configmap, checker.Key(configmap),
 					)
-					assert.Equal(tc.T, valuesData, configData, "key 'config' in %T %s has unexpected data", configmap, checker.Key(configmap))
+					if tc.T.Failed() {
+						return
+					}
+					assert.Equal(tc.T,
+						checker.ToYAML(checker.MustRenderValue[map[string]string](tc, ".Values.data")), configmap.Data["config"],
+						"%T %s does not have correct data in 'config' key", configmap, checker.Key(configmap),
+					)
 				}),
 			},
 		},

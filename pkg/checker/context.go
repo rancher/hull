@@ -21,6 +21,12 @@ type TestContext struct {
 	Data map[interface{}]interface{}
 
 	RenderValues helmChartUtil.Values
+
+	continueExecution bool
+}
+
+func (tc *TestContext) Continue() {
+	tc.continueExecution = true
 }
 
 func Store[K comparable, V interface{}](tc *TestContext, key K, value V) {

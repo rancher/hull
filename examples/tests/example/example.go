@@ -41,9 +41,6 @@ var suite = test.Suite{
 
 	NamedChecks: []test.NamedCheck{
 		{
-			Name: "All Deployments Have ServiceAccount",
-		},
-		{
 			Name: "Check Container Args",
 			Covers: []string{
 				".Values.args",

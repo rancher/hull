@@ -16,6 +16,7 @@ var executionErrorRe = regexp.MustCompile(`execution error at \(.*\): (?P<inner>
 type Suite struct {
 	ChartPath     string
 	DefaultValues *chart.Values
+	PreCheck      func(*checker.TestContext)
 	NamedChecks   []NamedCheck
 	Cases         []Case
 	FailureCases  []FailureCase
@@ -134,6 +135,11 @@ func (s *Suite) Run(t *testing.T, opts *SuiteOptions) {
 				checker.Once(func(tctx *checker.TestContext) {
 					tctx.RenderValues = renderValues
 				}),
+			}
+			if s.PreCheck != nil {
+				beforeChecks = append(beforeChecks,
+					checker.Once(s.PreCheck),
+				)
 			}
 			t.Run("HelmLint", func(t *testing.T) {
 				template.HelmLint(t, opts.HelmLint)

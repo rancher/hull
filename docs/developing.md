@@ -6,12 +6,13 @@
 ## This directory will contain additional docs to assist users in getting started with using Hull
 docs/
 
-## This directory contains an example of a Helm Chart Test Suite built using Hull that operates on the chart found in testdata/charts/example-chart
+## This directory contains examples of Hull Test Suites that operate on the charts found in testdata/charts/*
 examples/
-
-## This directory contains the image that is used to build rancher/hull, which is hosted on hub.docker.com
-package/
-  Dockerfile
+  tests/
+    # A Hull Test Suite that operates on testdata/charts/example-chart
+    example/
+    # A Hull Test Suite that operates on testdata/charts/simple-chart
+    simple/
 
 ## The main source directory for the code. See below for more details.
 pkg/
@@ -19,14 +20,11 @@ pkg/
 ## This directory contains scripts that are using to build, maintain, and release Hull. While you can directly call these scripts (assuming you have the required build dependencies), it's generally recommended that you run these scripts via `make` commands, which will run the build commands in a Dapper container (see https://github.com/rancher/dapper) that already has the pre-requisites installed.
 scripts/
 
-## This directory contains any data that Go tests in this repository, including examples/example_test.go and those defined on each module in pkg/, rely on to successfully test Hull.
+## This directory contains any data that Go tests in this repository, including the examples and those defined on each module in pkg/, rely on to successfully test Hull.
 testdata/
 
 ## The Dockerfile used to run CI and other scripts executed by make in a Docker container (powered by https://github.com/rancher/dapper)
 Dockerfile.dapper
-
-## The main entrypoint into Hull
-main.go
 ```
 
 ## Making changes to the codebase (`pkg`)
@@ -34,16 +32,26 @@ main.go
 Most of the code for Hull is contained in the `pkg` directory, which has the following structure:
 
 ```bash
-
-## This directory contains the logic used to parse Helm Charts into Charts that can produce Templates that tests can be run on via calling HelmLint, YamlLint, and Check
+## This directory contains the logic used to parse Helm Charts into chart.Charts. On supplying a chart.TemplateOption to that chart.Chart,
+## you can produce a chart.Template, which implements checker.Check
 chart/
   configuration/
-    ## This file contains the default YAMLLint configuration we use to run the YamlLint command on Templates
+    ## This file contains the default YAMLLint configuration we use to run the YamlLint command on Templates if it is not set in the test.Suite
     yamllint.yaml
-  # This directory contains utility functions used to extract information from the Chart.yaml of a chart, which can be useful in setting up a test.Suite
+  ## This directory contains utility functions used to extract information from the Chart.yaml of a chart.Chart, which can be useful in setting up a test.Suite
   metadata/
 
-## This directory contains the logic for defining a Checker on a given set of manifests, which can either be a String, an objectset.ObjectSet, or a map of objectSet.ObjectSet that encodes multiple manifests tests should be run on. 
+## This directory contains the logic for defining a checker.Checker on a given set of manifests, which can either be a String, an objectset.ObjectSet, or a map of objectSet.ObjectSet that encodes multiple manifests tests should be run on.
+##
+## It also contains the logic for creating a checker.CheckFunc via []checker.ChainedChecks that are provided.
+##
+## It is recommended to use ChainedChecks for a simpler flow in your test Suite.
+##
+## Using ChainedChecks produced from the functions in this module also protects the user from panics resulting from
+## the runtime type assertions contained in the pkg/checker/internal module.
+##
+## Finally, this directory also contains the logic for the checker.TestContext passed into a checker.ChainedCheck, including all the
+## helper functions attached to it that make it easier to extract render values or store and retrieve values across checker.ChainedChecks.
 ##
 ## Note: 
 ##
@@ -54,6 +62,25 @@ chart/
 ##
 ## Contributions are also welcome to add additional support for these types of test.Suites in the test package!
 checker/
+  ## This directory contains the underlying logic used to wrap arbitrary interfaces presumed to be objectStructFuncs (the type of functions
+  ## that are expected as the second argument to a Check call) into functions that can be called by providing *testing.T and a []runtime.Object
+  ##
+  ## It heavily uses the built-in Golang "reflect" library to provide runtime assertions against the types of function provided to it.
+  ##
+  ## Note: Ideally, you should never have to build an objectStructFunc yourself; it's recommended to build one using a []checker.ChainedCheckFunc
+  internal/
+
+## This directory contains the underlying logic used to extract a specific field identified by a Go template-like syntax from an object.
+##
+## Used by pkg/checker/context.go to implement RenderValue / MustRenderValue.
+##
+## Note:
+##
+## Since this package uses the built-in Golang "reflect" library, it's also capable of extracting fields across embedded structs and maps
+## (i.e. you can extract a Chart annotation from an map[string]interface{} that contains a value which is a *chart.Metadata which has a
+## map[string]string under the Annotation field that has the value desired; even though you are proceeding across maps or slices embedding structs
+## that embed maps or slices, it's still able to retrieve the value. This is done by providing the path ".Chart.Metadata.Annotations.<key-in-map>"
+extract/
 
 ## This directory contains the simple logic for parsing a manifest from a string into a *objectset.ObjectSet containing *unstructured.Unstructured objects, which will later be marshalled into specific Go types in pkg/checker
 parser/
@@ -66,6 +93,26 @@ parser/
 ## In addition, since it expects a specific format in which tests are encoded, it also encodes the logic to be able
 ## to inspect the provided Cases and output the inferred test coverage that your Cases seem to address.
 test/
+  ## This directory contains the logic for defining test coverage on Helm charts. It contains a simple Tracker that
+  ## can identify cross-reference the values.yaml provided by each test.Case against the declared set of values.yaml or
+  ## named template fields that are covered by a check, as indicated by test.NamedCheck[i].Covers.
+  ##
+  ## This is used to produce a report that fails a test.Suite that has not met a definition of coverage where all
+  ## fields have a NamedCheck and have had that specific field tested tested by the aforementioned NamedCheck at least once.
+  coverage/
+
+## This directory contains the underlying logic for introspecting on Go templates contained in the templates/ directory of a
+## Helm chart. It's able to identify every use of the built-in Object, a named template, etc. within a given file and provide
+## a struct that is used to instruct pkg/test/coverage about what needs to be covered for a given chart.
+tpl/
+  ## This directory contains the underlying logic for introspecting on a single Go template to identify every use of the built-in Object,
+  ## named templates, etc. in that template.
+  parse/
+  ## This directory contains simple internal utility functions that are used by pkg/tpl/parse to work with nodes in the Go template
+  utils/
+
+## This directory contains simple external utility functions for Hull users to use to simplify suite setup logic
+utils/
 
 ## This directory contains the logic for generating Markdown reports on Helm or YAML lint failures that come from
 ## running template.YAMLLint or template.HelmLint from the chart package
@@ -74,6 +121,8 @@ writer/
 
 ## Once you have made a change
 
-Ensure that you add a Go test to add coverage for the new functionality you added. Once you have, verify your results by running `./scripts/test` (or `make test` if you do not have the build dependencies installed on your local machine and would prefer to run the command in your container).
+Ensure that you add a Go test to add coverage for the new functionality you added. Verify this by running `MODULE=<./pkg> ./scripts/generate-coverage` before and after adding your changes to ensure that you have not decreased the amount of coverage by introducing your changes.
+
+Once you have, verify your results don't break logic in any other module by running `./scripts/test` (or `make test` if you do not have the build dependencies installed on your local machine and would prefer to run the command in your container).
 
 Also ensure that `./scripts/validate` (or `make validate`) passes to ensure your changes pass `golangci-lint` and `go fmt`.

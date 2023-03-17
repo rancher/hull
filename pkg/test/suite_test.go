@@ -9,6 +9,7 @@ import (
 	"github.com/aiyengar2/hull/pkg/checker"
 	"github.com/aiyengar2/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
+	helmChartUtil "helm.sh/helm/v3/pkg/chartutil"
 )
 
 const (
@@ -116,6 +117,36 @@ func TestRun(t *testing.T) {
 						Name:            "No Options",
 						TemplateOptions: nil,
 						FailureMessage:  ".Values.shouldFail is set to true",
+					},
+				},
+			},
+		},
+		{
+			Name: "Example Chart Override Value With PreCheck",
+			Suite: &Suite{
+				ChartPath: chartPath,
+				PreCheck: func(tc *checker.TestContext) {
+					renderValuesMap := tc.RenderValues.AsMap()
+					renderValuesMap["Values"].(helmChartUtil.Values)["hello"] = "rancher"
+				},
+				NamedChecks: []NamedCheck{
+					{
+						Name: "Check Value Of .Values.hello",
+						Checks: Checks{
+							checker.Once(func(tc *checker.TestContext) {
+								assert.Equal(t, "rancher", checker.MustRenderValue[string](tc, ".Values.hello"))
+							}),
+						},
+					},
+				},
+				Cases: []Case{
+					{
+						Name:            "Using Defaults",
+						TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace),
+					},
+					{
+						Name:            "Using Override",
+						TemplateOptions: chart.NewTemplateOptions(defaultReleaseName, defaultNamespace).SetValue("hello", "world"),
 					},
 				},
 			},
