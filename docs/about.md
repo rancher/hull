@@ -4,43 +4,146 @@
 
 Hull is a **Go testing framework** for writing comprehensive tests on [Helm](https://github.com/helm/helm) charts.
 
-## How Hull Works
+### How Do Helm Charts Work?
 
-Hull, as a testing framework, could be simply described as something analagous to "API Testing" framework on the `values.yaml` that is used to configure a Helm chart.
+At its core, all Helm charts are just sets of [Go templates](https://pkg.go.dev/text/template) listed under a `templates/` directory that are rendered based on Helm's [Built-In `RenderValues` struct](https://helm.sh/docs/chart_template_guide/builtin_objects/), which takes input from the `values.yaml` file declared with the chart.
 
-### What Does Hull Test?
+Upon rendering, it's expected that each file produces a **Kubernetes manifest**, or a list of Kubernetes resources (where the type of resource for each YAML document produced is identified by the `apiVersion` and `kind` fields).
 
-When a Helm chart owner defines a Helm chart, they usually define a base set of manifests that need to be deployed under the `templates/` directory.
+> **Note**: The combined list of all resources in the Kubernetes manifests produced by all template files in a chart constitute **a single Helm release**.
 
-Then they convert those manifests into Go templates that are rendered based on Helm's [Built-In `RenderValues` struct](https://helm.sh/docs/chart_template_guide/builtin_objects/).
+For example, take a simple Helm chart that has this single file in its `templates/` directory:
 
-So when you render a Helm chart (for a `helm template`, `helm install`, `helm upgrade`, etc.), what Helm is really doing under the hood is taking your command line arguments to create a `RenderValues` struct and **supplying that struct to generate a Kubernetes manifest**.
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: {{ .Values.image }}
+    ports:
+    - containerPort: 80
+```
 
-Therefore, from a testing perspective, what we would ideally like to do to set up comprehensive unit testing is **test your Helm chart against all possible values of the `RenderValues` struct** (or at least as many as is reasonable to encode in Go tests).
+By providing a values.yaml that contains `image: nginx:latest` to this Helm chart or running the `helm install` or `helm upgrade` command with `--set image=nginx:latest`, Helm will produce the following manifest:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
+
+If you were to provide `image: nginx:1.2.3` instead, you would get a different template:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.2.3
+    ports:
+    - containerPort: 80
+```
+
+If you are specifically running a `helm install` (non-dry-run) or `helm upgrade`, Helm will then take this produced manifest and do the equivalent of a `kubectl apply` onto the cluster.
+
+> **Note**: It's not an equivalency to say that Helm does a `kubectl apply` since Helm supports the ability to have [Chart Hooks](https://helm.sh/docs/topics/charts_hooks/), which applies resources in order based on the weight of the hook annotations attached to it. A normal `kubectl apply` would apply all resources in a given manifest in one shot.
+
+### How Does Hull Support Testing Helm Charts?
+
+Hull seeks to enforce comprehensive unit testing by helping you:
+1. **Encode all possible valid `test.Case`s and ensure that the listed `test.Case`s cover all possible valid configurations of the chart**: each `test.Case` corresponds to a single Helm template / release. This means each `test.Case` is tied to a single generated Kubernetes manifest rendered based on a given `values.yaml` (provided via `chart.TemplateOptions`) and the templates contained within the chart.
+2. **Run checks on all generated Helm releases**: these should be generic tests that run on all templates that are generated templates (i.e. `test.NamedCheck`) and can be parametrized by the `values.yaml` that was used to render a given `chart.Template` via using the `checker.RenderValue / checker.MustRenderValue` helper functions.
+
+### Testing With and Without Hull
+
+Let's say you wanted to manually test the `.Values.image` field above without Hull.
+
+The intended behavior of the field is to override the contents of `.spec.containers[0].image` to whatever value is provided.
+
+Therefore, there are probably two checks you would write up here:
+1. `helm template <default-chart-release-name> -n <default-chart-namespace> | yq e 'select(.kind == "Pod") | .spec.containers[0].image'`: ensure that the output here is the default value of `nginx:latest`
+2. `helm template <default-chart-release-name> -n <default-chart-namespace> --set image=nginx:1.2.3 | yq e 'select(.kind == "Pod") | .spec.containers[0].image'`: ensure that the output here is the provided value `nginx:1.2.3`
+
+For a simple field like this, this would be sufficient to fully test this field.
+
+On the other hand, in Hull you would encode this as two `test.Case`s with two distinct `test.NamedChecks` run on produced Helm release:
+
+```go
+var ChartPath = utils.MustGetPathFromModuleRoot("path", "to", "chart")
+
+var (
+	DefaultReleaseName = "<default-chart-release-name>"
+	DefaultNamespace   = "<default-chart-namespace>"
+)
+
+var suite = test.Suite{
+	ChartPath: ChartPath,
+
+	Cases: []test.Case{
+		{
+			Name: "Using Defaults",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace),
+		},
+		{
+			Name: "Setting nginx:1.2.3 image",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				SetValue("nginx.image", "1.2.3"),
+		},
+	},
+
+	NamedChecks: []test.NamedChecks{
+		Name: "Has correct value for Pod's image"
+		Covers: []string{".Values.nginx.image"}
+		Checks: test.Checks{
+			// TODO: some checks that check .spec.containers[0].image for the nginx workload == .Values.nginx.image
+		}
+	},
+}
+
+
+func TestChart(t *testing.T) {
+	opts := test.GetRancherOptions()
+	suite.Run(t, opts)
+}
+```
+
+While Hull may seem more verbose, there are three distinct advantages of encoding those same manual checks into Hull:
+1. It runs along with your normal CI; by just enforcing that a `go test -count=1 <testing-module>` passes in your repository, you know that these checks would pass on your chart, so a change has not broken any recorded case
+2. You can encode checks that span across all of the templates by only declaring a single `test.NamedCheck`; for example, a check that sees that all Pods generated have `nodeSelectors` and `tolerations` to support being deployed in a cluster with Windows nodes, regardless of your `values.yaml` configuration
+3. Hull's coverage check will ensure you have at least one test case to cover all references from the `values.yaml`, so you'll be able to use it to identify any gaps in CI
 
 ### A Simple Introduction To Hull
 
 Let's take a look at the anatomy of a simple Hull testing file:
 
 ```go
+var ChartPath = utils.MustGetPathFromModuleRoot("..", "testdata", "charts", "simple-chart")
+
+var (
+	DefaultReleaseName = "simple-chart"
+	DefaultNamespace   = "default"
+)
+
 var suite = test.Suite{
-	ChartPath:    filepath.Join("..", "testdata", "charts", "no-schema"),
+	ChartPath: ChartPath,
 
 	Cases: []test.Case{
 		{
-			Name: "Setting .Values.Data",
-
-			TemplateOptions: chart.NewTemplateOptions("no-schema", "default").
-				SetValue("data.hello", "world"),
-
-			Checks: []checker.Check{
-				{
-					Name: "sets .data.config on ConfigMaps",
-					Func: workloads.EnsureConfigMapsHaveData(
-						map[string]string{"config": "hello: world"},
-					),
-				},
-			},
+			Name:            "Using Defaults",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace),
 		},
 	},
 }
@@ -50,24 +153,174 @@ func TestChart(t *testing.T) {
 }
 ```
 
-Here, we're defining a `test.Suite` that applies to the chart located at [`../testdata/charts/no-schema`](../testdata/charts/no-schema).
+Here, we're defining a `test.Suite` that applies to the chart located at [`../testdata/charts/simple-chart`](../testdata/charts/simple-chart).
 
-Within the `test.Suite`, we define a list of `test.Case` objects that will be applied to the chart; each case takes in a set of `TemplateOptions`, which effectively allows you to configure the underlying `RenderValues` struct that would be passed into Helm when it tries to render your template.
+On running `go test -count=1 -v <path-to-module>`, we get the following output:
 
-For example, the template that Hull would render on parsing that `test.Case` would be equivalent to the one produced by running `helm template no-schema -n default --set data.hello=world ../testdata/charts/no-schema` based on the `TemplateOptions` provided.
+```log
+=== RUN   TestChart
+=== RUN   TestChart/Using_Defaults
+=== RUN   TestChart/Using_Defaults/HelmLint
+    template.go:171: [INFO] Chart.yaml: icon is recommended
+=== RUN   TestChart/Coverage
+    suite.go:208:
+                Error Trace:    path/to/hull/examples/tests/workspace/suite.go:208
+                Error:          Not equal:
+                                expected: 1
+                                actual  : 0
+                Test:           TestChart/Coverage
+                Messages:       The following field references are not tested:
+                                - {{ .Values.data }} : templates/configmap.yaml
+                                - {{ .Values.shouldFail }} : templates/configmap.yaml
+                                - {{ .Values.shouldFailRequired }} : templates/configmap.yaml
+--- FAIL: TestChart (0.01s)
+    --- PASS: TestChart/Using_Defaults (0.01s)
+        --- PASS: TestChart/Using_Defaults/HelmLint (0.01s)
+    --- FAIL: TestChart/Coverage (0.00s)
+FAIL
+FAIL    path/to/hull/examples/tests/workspace      1.643s
+FAIL
+```
 
-> **Note**: The utility function `SetValue` is intentionally written to mimic the way that Helm would receive these arguments itself (for the convenience of the tester)! However, you could also pass in a custom `TemplateOptions` struct for more complex cases (such as if you want to modify the `Capabilities` or `Release` options provided to the template call).
+> **Note**: If you look at the output above, you'll notice that each `test.Case` is run as a separate [Go subtest](https://go.dev/blog/subtests) and tests within it are run as subtests of itself (i.e. `HelmLint`), so it's possible to run individual cases for charts on a `go test`!
+
+The reason why you get this error is because, if you look at the contents of the `templates/` directory of [`simple-chart`](../testdata/charts/simple-chart/templates/configmap.yaml), you will find that your Go template uses `{{ .Values.data }}` to populate the contents of the ConfigMaps deployed alongside the chart.
+
+This is picked up by the logic in [`pkg/tpl/parse`](../pkg/tpl/parse/), which analyzes the Helm chart provided to `suite.ChartPath` and automatically figures out the ground that needs to be covered to test the chart.
+
+To resolve these issues, you will need to add an `test.Case` to this example suite that uses each of these fields and include a `test.NamedCheck`s for each of those fields to run the logical checks.
+
+Alternatively, you can write a `test.FailureCase`, if the chart is expected not to render when some configuration is provided.
+
+### Adding a `test.Case`
+
+To resolve the issue that came up as part of coverage, we first need to introduce a new test case that overrides `.Values.data`. To do this, we will first add a `test.Case`, which makes our `suite` object look as follows:
+
+```go
+var suite = test.Suite{
+	ChartPath: ChartPath,
+
+	Cases: []test.Case{
+		{
+			Name:            "Using Defaults",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace),
+		},
+		{
+			Name:            "Override .Values.data",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				SetValue("data.hello", "cattle"),
+		},
+	},
+}
+```
+
+As you can see above, the `chart.TemplateOptions` provided differ between these two cases.
+
+For example, the template that Hull would render on parsing the second `test.Case` would be equivalent to the one produced by running `helm template simple-chart -n default --set data.hello=cattle ../testdata/charts/simple-chart` based on the `TemplateOptions` provided.
+
+It is also identical to provide the same value in the following way:
+
+```go
+var suite = test.Suite{
+	ChartPath: ChartPath,
+
+	Cases: []test.Case{
+		{
+			Name:            "Using Defaults",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace),
+		},
+		{
+			Name: "Override .Values.data",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set("data", map[string]string{
+					"hello": "cattle",
+				}),
+		},
+	},
+}
+```
+
+Or even like this:
+
+```go
+type MyStruct{
+	Hello string
+}
+
+var suite = test.Suite{
+	ChartPath: ChartPath,
+
+	Cases: []test.Case{
+		{
+			Name:            "Using Defaults",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace),
+		},
+		{
+			Name: "Override .Values.data",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set("data", MyStruct{
+					Hello: "cattle",
+				}),
+		},
+	},
+}
+```
+
+Regardless of the object provided, the argument to `Set` will always marshall the given content into JSON and pass it to Helm as if it was received by the `--set-json` command line option.
+
+Therefore, the second `test.Case` in both of the examples above would be equivalent to the one produced by running `helm template simple-chart -n default --set-json '{"data": {"hello": "cattle"}}' ../testdata/charts/simple-chart` based on the `TemplateOptions` provided.
+
+
+> **Note**: `chart.TemplateOptions` allows you to configure the underlying `RenderValues` struct that would be passed into Helm when it tries to render your template; it corresponds directly to all flags providable in a `helm install`, `helm upgrade`, or `helm template` call that affects rendering.
+>
+> The utility functions `Set` and `SetValue` are intentionally written to mimic the way that Helm would receive these arguments itself (for the convenience of the tester)! However, you could also pass in a custom `TemplateOptions` struct for more complex cases (such as if you want to modify the `Capabilities` or `Release` options provided to the template call).
 >
 > See [`pkg/chart/template_options.go`](../pkg/chart/template_options.go) to view the `TemplateOptions` struct and see what options it takes!
 
 #### Running a `test.Case` in Hull
 
 On executing **each** `test.Case`, Hull automatically takes the following actions:
-1. A `helm lint` will be run on the rendered template **(see note below)**
-2. All the `suite.DefaultChecks` will be run on the template (a `[]checker.Checks` that are expected to be run on all templates)
-3. All the `checker.Checks` in `suite.Cases[i].Checks` will be run on the generated template
+1. A `helm lint` will be run on the rendered Kubernetes manifests **(see note below)**
+2. All the `suite.Checks` will be run on the rendered Kubernetes manifests
+3. Coverage will be checked; if the chart is not fully covered by the `test.Suite`, the test will fail.
 
-> **Note**: Each `test.Case` is run as a separate [Go subtest](https://go.dev/blog/subtests), so it's possible to run individual cases for charts on a `go test`!
+> **Note**: Since our current suite has no `test.NamedCheck`s, **no individual checks will be run on the template yet**.
+>
+> Therefore, you will only see 6 tests run: the root test for the overall chart, coverage for the overall chart, and 2 tests per case corresponding to the root test and just the output from running `helm lint`.
+>
+> Once we add checks, you will see 1 additional subtest per `test.ValueCheck` and and 1 additional subtest per `test.Case` per `test.TemplateCheck` be added to the total number of tests that are run.
+
+We can see that tests have been added to our output on running `go test -count=1 -v <path-to-module>`
+
+```log
+=== RUN   TestChart
+=== RUN   TestChart/Using_Defaults
+=== RUN   TestChart/Using_Defaults/HelmLint
+    template.go:171: [INFO] Chart.yaml: icon is recommended
+=== RUN   TestChart/Override_.Values.data
+=== RUN   TestChart/Override_.Values.data/HelmLint
+    template.go:171: [INFO] Chart.yaml: icon is recommended
+=== RUN   TestChart/Coverage
+    suite.go:208:
+                Error Trace:    path/to/hull/examples/tests/workspace/suite.go:208
+                Error:          Not equal:
+                                expected: 1
+                                actual  : 0
+                Test:           TestChart/Coverage
+                Messages:       The following field references are not tested:
+                                - {{ .Values.data }} : templates/configmap.yaml
+                                - {{ .Values.shouldFail }} : templates/configmap.yaml
+                                - {{ .Values.shouldFailRequired }} : templates/configmap.yaml
+--- FAIL: TestChart (0.01s)
+    --- PASS: TestChart/Using_Defaults (0.01s)
+        --- PASS: TestChart/Using_Defaults/HelmLint (0.01s)
+    --- PASS: TestChart/Override_.Values.data (0.00s)
+        --- PASS: TestChart/Override_.Values.data/HelmLint (0.00s)
+    --- FAIL: TestChart/Coverage (0.00s)
+FAIL
+FAIL   path/to/hull/examples/tests/workspace      0.845s
+FAIL
+```
 
 > **Note**: Hull adds additional linting for Rancher charts, such as validating the existence of certain annotations in the correct format. This can be enabled by supplying additional options in the second argument of the `suite.Run` call, but is disabled by default.
 >
@@ -79,17 +332,66 @@ On executing **each** `test.Case`, Hull automatically takes the following action
 >
 > When this environment variable is set, Hull will create a file at `${TEST_OUTPUT_DIR}/test-${UNIX_TIMESTAMP}.md` **on every failed test execution** that formats all the tests errors in a human-readable way.
 
-#### What Is A `checker.Check`?
+Our next step is to add a check!
 
-A `checker.Check` is a definition of a single check you want to run on a generated template.
+#### Adding a `test.NamedCheck`
 
-Examples of what you may want to encode in a `checker.Check` include:
+In order to ensure that we can pass coverage for `.Values.data`, we will introduce a no-op `test.NamedCheck` to our test suite. On adding it, our test suite should look as follows:
+
+```go
+var suite = test.Suite{
+	ChartPath: ChartPath,
+
+	Cases: []test.Case{
+		{
+			Name:            "Using Defaults",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace),
+		},
+		{
+			Name: "Override .Values.data",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set("data", map[string]string{
+					"hello": "cattle",
+				}),
+		},
+	},
+	NamedChecks: []test.NamedCheck{
+		{
+			Name:   "Test",
+			Covers: []string{".Values.data"},
+			Checks: test.Checks{},
+		},
+	},
+}
+```
+
+If you were to modify the suite to match what has been modified above, with the empty `test.Checks{}`, **you will find that .Values.data is passing now!**
+
+This is because there exists at least one `test.Case` whose TemplateOptions modify `.Values.data` in some way and at least one `test.NamedCheck` that runs against that `test.Case` that covers that particular value; as long as this requirement is satisfied, Hull is happy to let coverage pass for that field.
+
+#### What are `test.Checks`?
+
+While it's great that tests are passing in our example above, we're still passing tests as a false positive here; we need to actually execute a check on the manifest that is generated to truly have covered this field of the chart.
+
+To do this, you can specify `test.Checks`, which is a slice of `checker.ChainedChecks`; each `checker.ChainedCheck` produces a function that runs on the Kubernetes objects contained in a rendered Kubernetes manifest generated from a Helm chart.
+
+Each `chart.Template` produced from your suite's `chart.Chart` via the `chart.TemplateOptions` provided in a `test.Case` can run the `test.Checks` by running `template.Check(testingT, checker.NewCheckFunc(checks))`; this is precisely what the `test.Suite` does on a `Run`, with a couple of extra configuration options (like allowing a `test.Case` to set `case.OmitNamedChecks`, which causes the named check to be skipped for that specific `test.Case`).
+
+Examples of what you may want to encode in a `checker.ChainedCheck` function include:
 - Resources follow best practices that allow them to be deployed onto specialized environments (i.e. Deployments have nodeSelectors and tolerations for Windows)
 - Resources meet other business-specific requirements (i.e. all images start with `rancher/mirrored-` unless they belong on a special allow-list of Rancher original images)
 
 This is the core of what a chart owner will want to be able to use Hull for; therefore, by design, Hull is **extremely permissive** with respect to how a chart developer can choose to write their checks!
 
-To elaborate, you may notice that the `checker.Check` contains two fields: a name for the check, used to identify which check may have failed on a test failure, and a `CheckFunc`. However, if you look at the type definition of a `CheckFunc`, [you may notice that it is an empty `interface{}`](../pkg/checker/types.go)!
+In order to create a `checker.ChainedCheck`, you can use any of the helper functions defined in [`pkg/checker/loop.go`](../pkg/checker/loop.go) (or any of the other files in the `checker` module); these helper functions are intended to simplify the workflow of defining a `checker.ChainedCheck` by allowing a user to provide functions based on [Go Generics](https://go.dev/doc/tutorial/generics) to do common actions on resources.
+
+All `checker.ChainedChecks` (including those helper functions) will always have a function that takes in the `checker.TestContext`, a construct that allows checks to perform contextual actions, such as:
+- Running `checker.RenderValue[myType](tc, ".Values.something.i.want")` to extract a value from the rendered values of the `chart.Template` that this check is running a check on.
+- Running `checker.Store("Some Value I Store", "myValue")` / `checker.Get[string, string]("Some Value I Store")` to set arbitray values for future checks to use in the chain or `checker.MapSet` / `checker.MapGet` for setting groupings that you can later iterate through using `checker.MapFor` (useful if you want to do something like get all workloads running Windows workloads and checking if they have `nodeSelectors` set for Windows)
+- Running `checker.HasLabels(obj, expectedLabels)` or `checker.HasAnnotations(obj, expectedLabels)` to simplify things that would need to be done for any arbitrary `metav1.Object`; **contributions are welcome for more such functions!**.
+- Running `checker.ToYAML` or other functions that handle performing basic transformations for you similar to what Helm functions run
+
+You can even define your own `checker.ChainedCheck`, but you might notice that the type definition of a `checker.ChainedCheck` boils down to a function that takes in a `checker.TestContext` and returns a `CheckFunc`. However, if you look at the type definition of a `CheckFunc`, [you may notice that it is an empty `interface{}`](../pkg/checker/types.go)!
 
 This is because, under the hood, Hull performs the validation of the `CheckFunc`'s function signature **at runtime** based on logic encoded in [`pkg/checker/internal/do.go`](../pkg/checker/internal/do.go).
 
@@ -121,21 +423,11 @@ For example, in the above `MyCheck` function that takes in all the workloads typ
 
 You may want to do something even more complex, such as encoding whether all the images in these workloads exist on DockerHub. While this would be difficult to do in purely YAML-based linting solutions, this is something that can be encoded in a `checker.Check` by importing the Golang Docker client and leveraging it in a custom `checker.CheckFunc` to make the calls.
 
-#### Using A Built-In `checker.Check`
+If you do need this type of complexity, you may want to define such a custom check using `checker.NewChainedCheckFunc`, which simplifies the declaration for such a function; you can put your struct in the function signature of the function passed into `checker.NewChainedCheckFunc`, since the struct's type will be inferred to be the value of the type parameter `S`.
 
-Ideally, the intention of Hull is to provide a full set of utility functions in [`pkg/checker/resource`](../pkg/checker/resource) that emit `checker.CheckFunc` functions that cover common types of checks that users will want to execute.
+#### Dealing With Custom Resources
 
-For example, in the [`examples/tests/example/example_test.go`](../examples/tests/example/example_test.go) the following utility function from [`pkg/checker/resource/workloads`](../pkg/checker/resource/workloads/) emits a `checker.CheckFunc` that ensure that the number of `ConfigMap` objects emitted is equivalent to the number provided:
-
-```go
-workloads.EnsureNumConfigMaps(2)
-```
-
-While the current set of utility functions is not comprehensive yet, contributions are welcome!
-
-#### Writing A Custom `checker.Check`
-
-If you plan to write your own `checker.CheckFunc`, the major caveat is that you need to ensure that any Kubernetes resource Go types are added to the `pkg/checker.Scheme` defined [here](../pkg/checker/checker.go).
+If you plan to write a `checker.ChainedCheckFunc` on a custom resource in Kubernetes, the major caveat is that you need to ensure that any Kubernetes resource Go types are added to the `pkg/checker.Scheme` defined [here](../pkg/checker/checker.go).
 
 For users who have developed Kubernetes controllers before, it may be familiar to mention that the usual way to do this is by running the `AddToScheme` function usually generated by most Go-based Kubernetes controller frameworks.
 
@@ -179,99 +471,193 @@ func init() {
 
 And that's all you need to do!
 
-Alternatively, it is highly recommended to define structs that simply embed the structs defined in [`pkg/checker/resource`](../pkg/checker/resource), which **already take care of these imports on `init()` for you.**
-
 > **Note**: Why is this necessary?
 >
 > Without adding a type to the underlying `checker.Scheme`, Hull will not understand how to convert a YAML object it sees with a given `apiVersion` and `kind` to a corresponding Go struct that is within your function signature.
 >
 > If a type cannot be found in the `checker.Scheme`, it will **always** be assumed that your object is of type [`*unstructured.Unstructured`](https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured#Unstructured).
 
-### Defining Test "Coverage" In Hull
+#### Adding a `test.NamedCheck`
 
-While we've talked about how to define tests in Hull so far, Hull can also determine the degress of **coverage** that your `test.Suite` is currently testing on your chart.
-
-This generally involves three steps:
-1. Defining a Go struct type representing your `values.yaml` (`ExampleChart`)
-2. Adding an empty struct of that type to your `suite.ValuesStruct`
-3. Calling `TestCoverage` in the way defined below
-
-For example:
+In order to ensure that we can pass coverage for `.Values.data`, we will introduce a no-op `test.NamedCheck` to our test suite. On adding it, our test suite should look as follows:
 
 ```go
-type ExampleChart struct {
-  // filled out by Chart Owner
-}
-
 var suite = test.Suite{
-	...
-	ValuesStruct: &ExampleChart{},
-  ...
-}
+	ChartPath: ChartPath,
 
-func TestCoverage(t *testing.T) {
-	templateOptions := []*chart.TemplateOptions{}
-	for _, c := range suite.Cases {
-		templateOptions = append(templateOptions, c.TemplateOptions)
-	}
-	coverage, report := test.Coverage(t, ExampleChart{}, templateOptions...)
-	if t.Failed() {
-		return
-	}
-	assert.Equal(t, 1.00, coverage, report)
+	Cases: []test.Case{
+		{
+			Name:            "Using Defaults",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace),
+		},
+		{
+			Name: "Override .Values.data",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set("data", map[string]string{
+					"hello": "cattle",
+				}),
+		},
+	},
+
+	NamedChecks: []test.NamedCheck{
+		{
+			Name:   "Test",
+			Covers: []string{".Values.data"},
+			Checks: test.Checks{},
+		},
+	},
 }
 ```
 
-#### How Is Coverage Defined?
+If you were to modify the suite to match what has been modified above, with the empty `test.Checks{}`, **you will find that all Go tests are passing now!**
 
-As described in [a previous section](#what-does-hull-test), Hull seeks to **test your Helm chart against all possible values of the `RenderValues` struct** (or at least as many as is reasonable to encode in Go tests).
+This is because there exists at least one `test.Case` whose TemplateOptions modify `.Values.data` in some way and at least one `test.NamedCheck` that runs against that `test.Case` that covers that particular value; as long as this requirement is satisfied, Hull is happy to let coverage pass for that field.
 
-However, when it comes to defining "coverage" today, Hull defines it more simply: **whether the set of `TemplateOptions` defined by each `test.Case` covers configuring every available field within the `values.yaml` at least once.**.
+#### Adding a real `test.NamedCheck`
 
-> **Note**: An open issue exists in https://github.com/aiyengar2/hull/issues/5 around how to improve these coverage calculations to get closer to the expected goal.
+Now that we've gone over what `test.Checks` are, we can fix our previous suite to have a real check contained in our `suite.NamedChecks`. Let's also rename the check accordingly:
 
-#### Calculating Current Coverage
+```go
+var suite = test.Suite{
+	ChartPath: ChartPath,
 
-Based on this simpler definition of Hull coverage, the current coverage is easier to calculate. Hull takes the following process:
-- Convert each `TemplateOption` into a `map[string]interface{}` (i.e. JSON blob) representation and merge them all together into one blob (doesn't matter if there are overwrites)
-- Keep track of every nested key that is set in the combined `map[string]interface{}`
+	Cases: []test.Case{
+		{
+			Name:            "Using Defaults",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace),
+		},
+		{
+			Name: "Override .Values.data",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set("data", map[string]string{
+					"hello": "cattle",
+				}),
+		},
+	},
 
-> **Note**: While this may end up keeping track of **more** keys than necessary (i.e. you may store `deployments.labels.hello` as a key when only `deployments.labels` needs to be stored, since `hello` is just a random label selected for a test), it will never collect less. This will be important when calculating coverage.
+	NamedChecks: []test.NamedCheck{
+		{
+			Name: "ConfigMaps have expected data",
 
-#### Calculating Total Coverage
+			Covers: []string{".Values.data"},
 
-While the simpler definition of coverage seems more manageable to calculate total coverage, there's one fundamental problem: **Helm does not require `values.yaml` files to have a strict schema by default.**
-
-While upstream Helm has introduced the **capability** for Helm chart owners to specify a [`values.schema.json`](https://helm.sh/docs/topics/charts/#schema-files) (a [JSON Schema](https://json-schema.org/) validated by the Helm chart on template render), it's not actively maintained by several charts.
-
-However, since Hull requires this schema to understand how to calculate coverage and JSON schemas are hard to hand-maintain, the approach Hull has taken is to allow you to **describe your `values.yaml` representation in a Go struct type**.
-
-As a result, Hull is able to leverage type introspection to identify all possible fields that need to be set on the type by using the following logic:
-- If it is a slice: ensure the slice is non-nil / empty at least once
-- If it is a map: ensure the map is non-nil / empty at least once
-- If it is any other type: ensure the value is set at least once
-
-In return for defining this struct, Hull will leverage [`invopop/jsonschema`](https://github.com/invopop/jsonschema) to automatically translate your Go struct (while respecting struct tags identified by `jsonschema:`!) into a JSON schema, which will automatically add or replace the existing `values.schema.json` file of the chart.
-
-To enable automatic management of your `values.schema.json`, see the example in [`examples/codegen.go`](../examples/codegen.go), which will create or update all registered schemas to a file at the provided path (relative to the go module root) on running `go generate`.
-
-#### Calculating Coverage (%)
-
-Putting it all together, Hull outputs the total coverage on calling `test.Coverage(t, ExampleChart{}, templateOptions...)` by counting the number of fields identified by **both** your current coverage and total coverage and dividing it by the number of fields identified by your total coverage.
-
-On an error, Hull will also print out which fields are lacking tests. For example:
-
-```log
---- FAIL: TestCoverage (0.00s)
-    example_test.go:85:
-                Error Trace:    example_test.go:85
-                Error:          Not equal:
-                                expected: 1
-                                actual  : 0
-                Test:           TestCoverage
-                Messages:       The following keys are not set: [.data]
-                                Only the following keys are covered: []
+			Checks: test.Checks{
+				checker.PerResource(func(tc *checker.TestContext, configmap *corev1.ConfigMap) {
+					assert.Contains(tc.T,
+						configmap.Data, "config",
+						"%T %s does not have 'config' key", configmap, checker.Key(configmap),
+					)
+					if tc.T.Failed() {
+						return
+					}
+					assert.Equal(tc.T,
+						checker.ToYAML(checker.MustRenderValue[map[string]string](tc, ".Values.data")), configmap.Data["config"],
+						"%T %s does not have correct data in 'config' key", configmap, checker.Key(configmap),
+					)
+				}),
+			},
+		},
+	},
+}
 ```
+
+If we run this, we should find that the `simple-chart` passes this test! Now we're ready to move onto our next check.
+
+> **Note**: `checker.MustRenderValue` is a generic function, so it can return any type that you expect would belong in the
+> path provided. Here, we expect a `map[string]string`, but it would be valid to provide a struct here, or even a pointer to a struct.
+>
+> The only caveat though is that `checker.MustRenderValue` cannot return `nil`. Therefore, in cases where the value can be `nil`, you should use `val, ok := checker.RenderValue(...)`, where `!ok` signifies that either nothing was found in that path (it was never set) or the value at that path is set to `nil`.
+>
+> Here, I'm assuming it's safe to use since the `simple-chart` always provides `.Values.data` as a default value, but a user setting `.Values.data` in the `values.yaml` to `null` can cause this check to **panic (not fail)** due to the use of `MustRenderValue` instead of `RenderValue`.
+
+> **Note**: How did I know to `import corev1 "k8s.io/api/core/v1"` to get the type for a `*corev1.ConfigMap`?
+>
+> For most built-in Kubernetes resources, the definition for the type can always be found at `k8s.io/api/GROUP/VERSION`; since `ConfigMaps` is in the default group (`""`, which translates to `core`) and the version of the group I'm looking for is `v1`, I found it at `k8s.io/api/GROUP/VERSION`.
+>
+> Similarly, a `ClusterRole` belongs to the API group `rbac` at version `v1`, so `import rbacv1 "k8s.io/api/rbac/v1"` would allow me to use `*rbac.ClusterRole`.
+>
+> Occasionally, when defining fields like `metadata.*` in the resources, you may also need to import `metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"`; this library contains the structs that are commonly used by all Kubernetes resources.
+>
+> Remember to always use the pointer (`*corev1.ConfigMap`) not the value (`corev1.ConfigMap`) since the pointer is the one that implements the interface `runtime.Object` and `metav1.Object`, not the value!
+
+#### Adding a `test.FailureCase`
+
+Sometimes, you want to test conditions where you **expect** a template failure, such as when you have `fail` or `required` blocks in templates; in these cases, you don't need to run any checks, but you do want to ensure that a user gets the right error.
+
+To do this, you can add a `test.FailureCase`; it's fairly similar to a `test.Case`, but with the ability to declare coverage (since these templates don't go through the `suite.NamedChecks` as no template is created, so otherwise it would be impossible for them to add onto coverage) and the ability to assert that a specific failure message is received.
+
+Let's finish up our coverage by adding the last two `test.FailureCase`s covering our full `values.yaml`:
+
+```go
+var suite = test.Suite{
+	ChartPath: ChartPath,
+
+	Cases: []test.Case{
+		{
+			Name:            "Using Defaults",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace),
+		},
+		{
+			Name: "Override .Values.data",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set("data", map[string]string{
+					"hello": "cattle",
+				}),
+		},
+	},
+
+	NamedChecks: []test.NamedCheck{
+		{
+			Name:   "Test",
+			Covers: []string{".Values.data"},
+			Checks: test.Checks{
+				checker.PerResource(func(tc *checker.TestContext, configmap *corev1.ConfigMap) {
+					assert.Contains(tc.T,
+						configmap.Data, "config",
+						"%T %s does not have 'config' key", configmap, checker.Key(configmap),
+					)
+					if tc.T.Failed() {
+						return
+					}
+					assert.Equal(tc.T,
+						checker.ToYAML(checker.MustRenderValue[map[string]string](tc, ".Values.data")), configmap.Data["config"],
+						"%T %s does not have correct data in 'config' key", configmap, checker.Key(configmap),
+					)
+				}),
+			},
+		},
+	},
+
+	FailureCases: []test.FailureCase{
+		{
+			Name: "Set .Values.shouldFail",
+
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				SetValue("shouldFail", "true"),
+
+			Covers: []string{
+				".Values.shouldFail",
+			},
+
+			FailureMessage: ".Values.shouldFail is set to true",
+		},
+		{
+			Name: "Set .Values.shouldFailRequired",
+
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				SetValue("shouldFailRequired", "true"),
+
+			Covers: []string{
+				".Values.shouldFailRequired",
+			},
+
+			FailureMessage: ".Values.shouldFailRequired is set to true",
+		},
+	},
+}
+```
+
+Coverage should now be passing for the full chart! You can see the full working example at [`../examples/tests/simple/`](../examples/tests/simple/) or a more complex example at [`../examples/tests/example/`](../examples/tests/example/) that does not currently have full coverage (this is left as an exercise to the reader).
 
 ## Should I Use Hull?
 
@@ -283,19 +669,4 @@ Hull is great for organization that:
 - Needs a fairly robust Helm template testing tool with easy extensibility
 - Works primarily in Golang (such as those that develop Golang Kubernetes operators and ship them in Helm charts)
 
-For example, Hull is targeted for use in [`rancher/charts`](https://github.com/rancher/charts/tree/main/charts) today, a repository that maintains a large number of highly complex charts.
-
-### Alternatives
-
-Depending on your organizational requirements, you may benefit from another Helm testing framework which might be simpler to use than Hull.
-
-Here are some popular options that were considered on developing Hull:
-
-| Project                                                               | Pros                                                                                                                                                                                                                                                                                             | Cons                                                                                                                                                                                                                                                                                     | Recommended If...                                                                                                                                                                                                                                                                                                                                                             |
-|-----------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`stackrox/kube-linter`](https://github.com/stackrox/kube-linter)     | Lots of great default checks out of the box!   <br /><br />  Easy to add some forms of custom checks in YAML                                                                                                                                                                                     | Adding a new custom check requires forking kube-linter and building it yourself                                                                                                                                                                                                          | You would like a simpler out-of-the-box solution around testing your Helm manifests to see if they follow best practices and don't anticipate adding many custom checks.  <br /> <br />  Might be great to leverage this along with [`yannh/kubeconform`](https://github.com/yannh/kubeconform) for resource schema validation.                                               |
-| [`gruntwork-io/terratest`](https://github.com/gruntwork-io/terratest) | Go-based framework is easy to extend                                                                                                                                                                                                                                                             | Not a "Helm-first" framework; great from an integration testing perspective for performing helm operations on a live cluster, but does not have much around marshalling and unmarshalling resources in rendered template manifests (unless you have one resource per Helm template file) | You would like more of an integration testing solution, no need for **robust** template-based validation like what Hull offers.  <br /> <br />  Might be a great idea to consider using this, or a simpler solution like [`helm/chart-testing`](https://github.com/helm/chart-testing) if all you want is to install / upgrade and run `helm test` on the basic configuration |
-| [`conftest`](https://www.conftest.dev/)                               | Ability to define tests in the same language as OPA, which is great for asserting policies on manifests generated from Helm charts  <br /><br />  Possibility to utilize currently available policy libraries to maintain a common set of policies for chart best practices and policy execution | Rego is hard to learn, use, and debug for developers who don't directly work with it, as compared to using more common languages like Python or Go                                                                                                                                       | Your organization has familiarity with using Rego as a policy language.                                                                                                                                                                                                                                                                                                       |
-| [`quintush/helm-unittest`](https://github.com/quintush/helm-unittest) | Ability to define tests in pure YAML, which is simpler to encode   <br /><br />  Framework is designed to be BDD-style                                                                                                                                                                           | YAML is hard to extend, especially for complicated sets of tests                                                                                                                                                                                                                         | Your organization would like a simpler out-of-the-box solution that can be maintained without needing to understand and maintain code in another programming language                                                                                                                                                                                                         |
-
-> **Note**: The above pros and cons may not match the current state of these projects. We welcome contributions to add additional pros and cons if any of these projects may have been misrepresented!
+For example, Hull is targeted for use in [`rancher/charts`](https://github.com/rancher/charts/tree/main/charts) today, a repository that maintains a large number of highly complex charts that primarily deploy operators built in Go.
