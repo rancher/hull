@@ -9,7 +9,7 @@ Once you have defined your suite of tests targeting a specific chart (or multipl
 
 ## Who needs Hull?
 
-Anyone who maintains a Helm repository or a set of Helm charts that would like to add an automated testing suite that allows them to **lint** charts, setup **unit tests**, and perform **automatic values.schema.json generation**.
+Anyone who maintains a Helm repository or a set of Helm charts that would like to add an automated testing suite that allows them to **lint** charts and setup **unit tests**.
 
 For more information on why you might want to use Hull, see the [About guide](docs/about.md).
 
@@ -17,7 +17,7 @@ For more information on why you might want to use Hull, see the [About guide](do
 
 You will be expected to install the following dependencies locally on your machine to successfully run Hull:
 * [Go](https://go.dev) (minimal requirement to be able to run `go test`)
-* [Yamllint](https://github.com/adrienverge/yamllint) (allows Hull to run YAML linting on manifests produced by `helm template` commands)
+* [Yamllint](https://github.com/adrienverge/yamllint) (only required if you use Hull to run YAML linting on manifests produced by `helm template` commands)
 
 ## Getting Started
 
