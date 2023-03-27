@@ -40,6 +40,29 @@ func NewTracker(usage *tpl.TemplateUsage, includeSubcharts bool) *Tracker {
 		if !includeSubcharts && strings.HasPrefix(templatePath, "charts/") {
 			continue
 		}
+
+		if strings.HasPrefix(templatePath, "charts/") {
+			for fieldIndex, field := range result.Fields {
+
+				if strings.HasPrefix(field, ".Values.global") || strings.HasPrefix(field, ".Release") {
+					continue
+				} else {
+
+					chartName := ""
+
+					temp := strings.Split(templatePath, "/")
+					if len(temp) > 1 {
+						chartName = temp[1]
+					}
+
+					if chartName != "" {
+						fieldWithValuesPrefixRemoved := strings.TrimPrefix(result.Fields[fieldIndex], ".Values")
+						result.Fields[fieldIndex] = ".Values." + chartName + fieldWithValuesPrefixRemoved
+					}
+				}
+			}
+		}
+
 		trackFieldsFromResult(result, templatePath, nil)
 	}
 	return &Tracker{
