@@ -5,7 +5,7 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/aiyengar2/hull/pkg/tpl/utils"
+	"github.com/rancher/hull/pkg/tpl/utils"
 	"github.com/stretchr/testify/assert"
 )
 

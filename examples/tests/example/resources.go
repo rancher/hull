@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aiyengar2/hull/pkg/checker"
-	"github.com/aiyengar2/hull/pkg/test"
+	"github.com/rancher/hull/pkg/checker"
+	"github.com/rancher/hull/pkg/test"
 	"github.com/stretchr/testify/assert"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

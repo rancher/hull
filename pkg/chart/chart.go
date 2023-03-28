@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aiyengar2/hull/pkg/parser"
+	"github.com/rancher/hull/pkg/parser"
 	"github.com/rancher/wrangler/pkg/objectset"
 	helmChart "helm.sh/helm/v3/pkg/chart"
 	helmLoader "helm.sh/helm/v3/pkg/chart/loader"

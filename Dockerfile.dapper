@@ -35,7 +35,7 @@ LABEL gotestsum_version=${gotestsum_version}
 RUN go install gotest.tools/gotestsum@${gotestsum_version}
 
 ENV DAPPER_ENV REPO TAG DRONE_TAG CROSS
-ENV DAPPER_SOURCE /go/src/github.com/aiyengar2/hull/
+ENV DAPPER_SOURCE /go/src/github.com/rancher/hull/
 ENV DAPPER_OUTPUT ./bin ./dist
 ENV DAPPER_DOCKER_SOCKET true
 ENV GOPATH /go

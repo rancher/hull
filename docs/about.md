@@ -456,7 +456,7 @@ For example, here is how you would add the `corev1` Go types to ensure the Hull 
 
 ```go
 import (
-	"github.com/aiyengar2/hull/pkg/checker"
+	"github.com/rancher/hull/pkg/checker"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -471,7 +471,7 @@ If you also need your `CheckFunc` to be able to work with other workload types, 
 
 ```go
 import (
-	"github.com/aiyengar2/hull/pkg/checker"
+	"github.com/rancher/hull/pkg/checker"
 	corev1 "k8s.io/api/core/v1"
   appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aiyengar2/hull/pkg/chart"
-	"github.com/aiyengar2/hull/pkg/tpl/parse"
-	"github.com/aiyengar2/hull/pkg/utils"
 	"github.com/hashicorp/go-multierror"
+	"github.com/rancher/hull/pkg/chart"
+	"github.com/rancher/hull/pkg/tpl/parse"
+	"github.com/rancher/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 

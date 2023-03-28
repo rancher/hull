@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aiyengar2/hull/pkg/chart"
-	"github.com/aiyengar2/hull/pkg/test/coverage/internal"
-	"github.com/aiyengar2/hull/pkg/tpl"
-	"github.com/aiyengar2/hull/pkg/tpl/parse"
+	"github.com/rancher/hull/pkg/chart"
+	"github.com/rancher/hull/pkg/test/coverage/internal"
+	"github.com/rancher/hull/pkg/tpl"
+	"github.com/rancher/hull/pkg/tpl/parse"
 )
 
 type Tracker struct {

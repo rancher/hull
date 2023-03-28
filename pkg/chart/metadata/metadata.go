@@ -3,7 +3,7 @@ package metadata
 import (
 	"fmt"
 
-	"github.com/aiyengar2/hull/pkg/chart"
+	"github.com/rancher/hull/pkg/chart"
 )
 
 const (

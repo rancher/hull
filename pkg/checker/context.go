@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/aiyengar2/hull/pkg/extract"
+	"github.com/rancher/hull/pkg/extract"
 	helmChartUtil "helm.sh/helm/v3/pkg/chartutil"
 )
 

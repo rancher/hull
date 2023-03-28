@@ -1,8 +1,8 @@
-module github.com/aiyengar2/hull/examples
+module github.com/rancher/hull/examples
 
 go 1.19
 
-replace github.com/aiyengar2/hull => ./..
+replace github.com/rancher/hull => ./..
 
 replace (
 	k8s.io/api => k8s.io/api v0.25.4
@@ -15,7 +15,7 @@ replace (
 )
 
 require (
-	github.com/aiyengar2/hull v0.0.0-00010101000000-000000000000
+	github.com/rancher/hull v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.8.1
 	k8s.io/api v0.26.0
 )

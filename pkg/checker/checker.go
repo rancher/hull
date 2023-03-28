@@ -3,8 +3,8 @@ package checker
 import (
 	"testing"
 
-	"github.com/aiyengar2/hull/pkg/checker/internal"
-	"github.com/aiyengar2/hull/pkg/parser"
+	"github.com/rancher/hull/pkg/checker/internal"
+	"github.com/rancher/hull/pkg/parser"
 	"github.com/rancher/wrangler/pkg/objectset"
 )
 
