@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aiyengar2/hull/pkg/chart"
-	"github.com/aiyengar2/hull/pkg/checker"
-	"github.com/aiyengar2/hull/pkg/utils"
+	"github.com/rancher/hull/pkg/chart"
+	"github.com/rancher/hull/pkg/checker"
+	"github.com/rancher/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	helmChartUtil "helm.sh/helm/v3/pkg/chartutil"
 )

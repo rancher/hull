@@ -3,8 +3,8 @@ package example
 import (
 	"fmt"
 
-	"github.com/aiyengar2/hull/pkg/checker"
-	"github.com/aiyengar2/hull/pkg/test"
+	"github.com/rancher/hull/pkg/checker"
+	"github.com/rancher/hull/pkg/test"
 	"github.com/rancher/wrangler/pkg/relatedresource"
 	"github.com/stretchr/testify/assert"
 

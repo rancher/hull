@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aiyengar2/hull/pkg/checker"
-	"github.com/aiyengar2/hull/pkg/writer"
 	multierr "github.com/hashicorp/go-multierror"
+	"github.com/rancher/hull/pkg/checker"
+	"github.com/rancher/hull/pkg/writer"
 	"github.com/rancher/wrangler/pkg/objectset"
 	helmAction "helm.sh/helm/v3/pkg/action"
 	helmLintSupport "helm.sh/helm/v3/pkg/lint/support"

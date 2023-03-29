@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aiyengar2/hull/pkg/utils"
+	"github.com/rancher/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 

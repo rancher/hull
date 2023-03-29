@@ -1,10 +1,10 @@
 package example
 
 import (
-	"github.com/aiyengar2/hull/pkg/chart"
-	"github.com/aiyengar2/hull/pkg/checker"
-	"github.com/aiyengar2/hull/pkg/test"
-	"github.com/aiyengar2/hull/pkg/utils"
+	"github.com/rancher/hull/pkg/chart"
+	"github.com/rancher/hull/pkg/checker"
+	"github.com/rancher/hull/pkg/test"
+	"github.com/rancher/hull/pkg/utils"
 	"github.com/stretchr/testify/assert"
 
 	corev1 "k8s.io/api/core/v1"

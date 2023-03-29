@@ -4,10 +4,10 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/aiyengar2/hull/pkg/chart"
-	"github.com/aiyengar2/hull/pkg/checker"
-	"github.com/aiyengar2/hull/pkg/test/coverage"
-	"github.com/aiyengar2/hull/pkg/tpl"
+	"github.com/rancher/hull/pkg/chart"
+	"github.com/rancher/hull/pkg/checker"
+	"github.com/rancher/hull/pkg/test/coverage"
+	"github.com/rancher/hull/pkg/tpl"
 	"github.com/stretchr/testify/assert"
 )
 

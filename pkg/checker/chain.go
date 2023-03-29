@@ -3,7 +3,7 @@ package checker
 import (
 	"testing"
 
-	"github.com/aiyengar2/hull/pkg/checker/internal"
+	"github.com/rancher/hull/pkg/checker/internal"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )

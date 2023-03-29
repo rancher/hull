@@ -3,9 +3,9 @@ package coverage
 import (
 	"testing"
 
-	"github.com/aiyengar2/hull/pkg/chart"
-	"github.com/aiyengar2/hull/pkg/tpl"
-	"github.com/aiyengar2/hull/pkg/tpl/parse"
+	"github.com/rancher/hull/pkg/chart"
+	"github.com/rancher/hull/pkg/tpl"
+	"github.com/rancher/hull/pkg/tpl/parse"
 	"github.com/stretchr/testify/assert"
 )
 

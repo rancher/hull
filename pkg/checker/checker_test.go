@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/aiyengar2/hull/pkg/parser"
+	"github.com/rancher/hull/pkg/parser"
 	"github.com/rancher/wrangler/pkg/objectset"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
