@@ -82,11 +82,20 @@ func (c *chart) RenderTemplate(opts *TemplateOptions) (Template, error) {
 	}
 	for source, manifestString := range templateYamls {
 		source := strings.SplitN(source, string(filepath.Separator), 2)[1]
+
+		// skip parsing non YAML source files.
+		if filepath.Ext(source) != ".yml" && filepath.Ext(source) != ".yaml" {
+			files[source] = manifestString
+			objectsets[source] = objectset.NewObjectSet()
+			continue
+		}
+
 		manifestString := fmt.Sprintf("---\n%s", manifestString)
 		manifestOs, err := parser.Parse(manifestString)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("parsing %s file failed: %s", source, err)
 		}
+
 		if manifestOs == nil {
 			// Note: the action taken here is to workaround a bug in wrangler:
 			// https://github.com/rancher/wrangler/blob/5167c04fcdd50e24d9710813572382eeb3064805/pkg/objectset/objectset.go#L99
