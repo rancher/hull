@@ -13,6 +13,7 @@ import (
 )
 
 // Parse parses the runtime.Objects tracked in a Kubernetes manifest (represented as a string) into an ObjectSet
+// Parse is expected to be used only for a valid Kubernetes YAML manifest
 func Parse(manifest string) (*objectset.ObjectSet, error) {
 	var multiErr error
 	var u unstructured.Unstructured
@@ -26,11 +27,8 @@ func Parse(manifest string) (*objectset.ObjectSet, error) {
 			if err == io.EOF {
 				break
 			}
-			if strings.HasPrefix(err.Error(), "error unmarshaling JSON: while decoding JSON: Object 'Kind' is missing in ") {
-				// not a valid kubernetes object, but some valid JSON
-				continue
-			}
-			multiErr = multierr.Append(err, err)
+
+			multiErr = multierr.Append(multiErr, err)
 			continue
 		}
 		if uCopy.GetAPIVersion() == "" || uCopy.GetKind() == "" {
