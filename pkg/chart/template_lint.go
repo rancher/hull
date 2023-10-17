@@ -8,7 +8,17 @@ import (
 	multierr "github.com/hashicorp/go-multierror"
 )
 
-func (t *template) validateRancherAnnotations() error {
+func (t *template) validateRancherAnnotations(opts RancherHelmLintOptions) error {
+	if !opts.Enabled {
+		// nothing to check
+		return nil
+	}
+
+	ignoreAnnotations := make(map[string]bool)
+	for _, a := range opts.IgnoreAnnotations {
+		ignoreAnnotations[a] = true
+	}
+
 	meta := t.Chart.Metadata
 	if meta.Annotations == nil {
 		return errors.New("missing required Rancher annotations: no annotations found")
@@ -22,6 +32,10 @@ func (t *template) validateRancherAnnotations() error {
 
 	// Required Annotations
 	for _, a := range []string{"catalog.cattle.io/display-name", "catalog.cattle.io/namespace", "catalog.cattle.io/release-name"} {
+		_, ignored := ignoreAnnotations[a]
+		if ignored {
+			continue
+		}
 		_, ok := annotations[a]
 		if !ok {
 			err = multierr.Append(err, fmt.Errorf("chart missing required annotation '%s'", a))
@@ -31,6 +45,10 @@ func (t *template) validateRancherAnnotations() error {
 
 	// Required Annotations With Semver Values
 	for _, a := range []string{"catalog.cattle.io/kube-version", "catalog.cattle.io/rancher-version"} {
+		_, ignored := ignoreAnnotations[a]
+		if ignored {
+			continue
+		}
 		val, ok := annotations[a]
 		if !ok {
 			err = multierr.Append(err, fmt.Errorf("chart missing required annotation '%s'", a))
@@ -47,6 +65,10 @@ func (t *template) validateRancherAnnotations() error {
 	for a, possibleV := range map[string][]string{
 		"catalog.cattle.io/permits-os": {"linux", "windows", "linux,windows", "windows,linux"},
 	} {
+		_, ignored := ignoreAnnotations[a]
+		if ignored {
+			continue
+		}
 		val, ok := annotations[a]
 		if !ok {
 			err = multierr.Append(err, fmt.Errorf("chart missing required annotation '%s'", a))
