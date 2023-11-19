@@ -81,7 +81,7 @@ func (c *chart) RenderTemplate(opts *TemplateOptions) (Template, error) {
 		"": objectset.NewObjectSet(),
 	}
 	for source, manifestString := range templateYamls {
-		source := strings.SplitN(source, string(filepath.Separator), 2)[1]
+		source := strings.SplitN(source, "/", 2)[1]
 
 		// skip parsing non YAML source files.
 		if filepath.Ext(source) != ".yml" && filepath.Ext(source) != ".yaml" {
