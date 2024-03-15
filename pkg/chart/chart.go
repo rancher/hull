@@ -70,7 +70,10 @@ func (c *chart) RenderTemplate(opts *TemplateOptions) (Template, error) {
 	if err != nil {
 		return nil, err
 	}
-	e := helmEngine.New(nil)
+	// We do not use `helmEngine.New()` here because it sets Engine.clientProvider to a non-nil
+	// value. This causes the lookup function in the template function map to be set, which is
+	// undesirable in the case of hull, where there is no k8s cluster to look up resources on.
+	e := helmEngine.Engine{}
 	e.LintMode = false
 	templateYamls, err := e.Render(c.Chart, renderValues)
 	if err != nil {
