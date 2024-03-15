@@ -326,34 +326,91 @@ func TestAdditionalLintChecks(t *testing.T) {
 		Name                                 string
 		ChartPath                            string
 		ShouldFailValidateRancherAnnotations bool
+		RancherHelmLintOptions               RancherHelmLintOptions
 	}{
 		{
 			Name:      "Example Chart",
 			ChartPath: exampleChartPath,
-		},
-		{
-			Name:                                 "Without Annotations",
-			ChartPath:                            withoutAnnotationsChartPath,
-			ShouldFailValidateRancherAnnotations: true,
+			RancherHelmLintOptions: RancherHelmLintOptions{
+				Enabled: true,
+			},
 		},
 		{
 			Name:      "Hidden Chart",
 			ChartPath: hiddenChartPath,
+			RancherHelmLintOptions: RancherHelmLintOptions{
+				Enabled: true,
+			},
 		},
 		{
-			Name:                                 "Wrong Annotations",
-			ChartPath:                            wrongAnnotationsChartPath,
+			Name:      "Without Annotations",
+			ChartPath: withoutAnnotationsChartPath,
+			RancherHelmLintOptions: RancherHelmLintOptions{
+				Enabled: true,
+			},
 			ShouldFailValidateRancherAnnotations: true,
 		},
 		{
-			Name:                                 "Wrong OS Annotation",
-			ChartPath:                            wrongOSAnnotationChartPath,
+			Name:      "Wrong Annotations",
+			ChartPath: wrongAnnotationsChartPath,
+			RancherHelmLintOptions: RancherHelmLintOptions{
+				Enabled: true,
+			},
 			ShouldFailValidateRancherAnnotations: true,
 		},
 		{
-			Name:                                 "Invalid Kube Constraint",
-			ChartPath:                            invalidKubeConstraintPath,
+			Name:      "Wrong OS Annotation",
+			ChartPath: wrongOSAnnotationChartPath,
+			RancherHelmLintOptions: RancherHelmLintOptions{
+				Enabled: true,
+			},
 			ShouldFailValidateRancherAnnotations: true,
+		},
+		{
+			Name:      "Invalid Kube Constraint",
+			ChartPath: invalidKubeConstraintPath,
+			RancherHelmLintOptions: RancherHelmLintOptions{
+				Enabled: true,
+			},
+			ShouldFailValidateRancherAnnotations: true,
+		},
+		{
+			Name:      "Without Annotations (but disabled)",
+			ChartPath: withoutAnnotationsChartPath,
+			RancherHelmLintOptions: RancherHelmLintOptions{
+				Enabled: false,
+			},
+		},
+		{
+			Name:      "Wrong Annotations (but excluded)",
+			ChartPath: wrongAnnotationsChartPath,
+			RancherHelmLintOptions: RancherHelmLintOptions{
+				Enabled: true,
+				IgnoreAnnotations: []string{
+					"catalog.cattle.io/display-name",
+					"catalog.cattle.io/namespace",
+					"catalog.cattle.io/release-name",
+					"catalog.cattle.io/kube-version",
+					"catalog.cattle.io/rancher-version",
+					"catalog.cattle.io/permits-os",
+				},
+			},
+		},
+		{
+			Name:      "Wrong OS Annotation (but excluded)",
+			ChartPath: wrongOSAnnotationChartPath,
+			RancherHelmLintOptions: RancherHelmLintOptions{
+				Enabled:           true,
+				IgnoreAnnotations: []string{"catalog.cattle.io/permits-os"},
+			},
+		},
+		{
+			Name:      "Invalid Kube Constraint (but excluded)",
+			ChartPath: invalidKubeConstraintPath,
+			RancherHelmLintOptions: RancherHelmLintOptions{
+				Enabled:           true,
+				IgnoreAnnotations: []string{"catalog.cattle.io/kube-version"},
+			},
 		},
 	}
 
@@ -363,9 +420,7 @@ func TestAdditionalLintChecks(t *testing.T) {
 			t.Fatalf("could not find template %s", tc.ChartPath)
 		}
 
-		var err error
-
-		err = template.validateRancherAnnotations()
+		err := template.validateRancherAnnotations(tc.RancherHelmLintOptions)
 		if err != nil {
 			assert.True(t, tc.ShouldFailValidateRancherAnnotations, "unexpected error: %s", err)
 		}
