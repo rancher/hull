@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/golang:1.21
+FROM registry.suse.com/bci/golang:1.24.3
 
 ARG DAPPER_HOST_ARCH
 ENV ARCH $DAPPER_HOST_ARCH
@@ -6,11 +6,11 @@ ENV ARCH $DAPPER_HOST_ARCH
 RUN zypper -n install git docker vim less file curl wget
 RUN go install golang.org/x/tools/cmd/goimports@latest
 RUN if [ "${ARCH}" == "amd64" ]; then \
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.54.0; \
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.5.0; \
     fi
 
 # # Install Helm
-ARG helm_version=v3.14.1
+ARG helm_version=v3.19.0
 LABEL helm_version=${helm_version}
 RUN curl -sL https://get.helm.sh/helm-${helm_version}-linux-${ARCH}.tar.gz | tar xvzf - -C /usr/local/bin --strip-components=1
 
@@ -22,7 +22,7 @@ RUN curl -sL https://get.helm.sh/helm-${helm_version}-linux-${ARCH}.tar.gz | tar
 RUN zypper --non-interactive install tar python3 python3-pip
 
 # Install a YAML Linter
-ARG yamllint_version=1.26.3
+ARG yamllint_version=1.28.0
 LABEL yamllint_version=$yamllint_version
 RUN pip install "yamllint==$yamllint_version"
 
@@ -30,7 +30,7 @@ RUN pip install "yamllint==$yamllint_version"
 # note: this tool has been added to allow users to declare that the output of the tests should
 # be converted from human-readable Go test output to a machine-parseable JUnit XML report
 
-ARG gotestsum_version=v1.8.2
+ARG gotestsum_version=v1.13.0
 LABEL gotestsum_version=${gotestsum_version}
 RUN go install gotest.tools/gotestsum@${gotestsum_version}
 

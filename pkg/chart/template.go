@@ -13,7 +13,7 @@ import (
 	multierr "github.com/hashicorp/go-multierror"
 	"github.com/rancher/hull/pkg/checker"
 	"github.com/rancher/hull/pkg/writer"
-	"github.com/rancher/wrangler/pkg/objectset"
+	"github.com/rancher/wrangler/v3/pkg/objectset"
 	helmAction "helm.sh/helm/v3/pkg/action"
 	helmLintSupport "helm.sh/helm/v3/pkg/lint/support"
 )
@@ -146,7 +146,7 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 
 	// Grab all subchart paths
 	paths := []string{t.Chart.Path}
-	filepath.Walk(filepath.Join(t.Chart.Path, "charts"), func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(filepath.Join(t.Chart.Path, "charts"), func(path string, info os.FileInfo, _ error) error {
 		if info != nil && info.Name() == "Chart.yaml" {
 			paths = append(paths, filepath.Dir(path))
 		}
@@ -172,7 +172,7 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 			continue
 		case helmLintSupport.ErrorSev:
 			err := errMap[msg.Path]
-			errMap[msg.Path] = multierr.Append(err, fmt.Errorf(msg.Error()))
+			errMap[msg.Path] = multierr.Append(err, fmt.Errorf("%s", msg.Error()))
 		}
 	}
 	if len(errMap) == 0 {
