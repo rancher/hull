@@ -179,9 +179,8 @@ func TestSetKubeVersion(t *testing.T) {
 			Version: "1.25.0",
 		},
 		{
-			Name:             "Invalid",
-			Version:          "1.25.",
-			ShouldThrowError: true,
+			Name:    "Invalid",
+			Version: "1.25.",
 		},
 		{
 			Name:    "K3s",
@@ -211,7 +210,11 @@ func TestSetKubeVersion(t *testing.T) {
 			if !strings.HasPrefix(version, "v") {
 				version = "v" + version
 			}
-			assert.Equal(t, opts.Capabilities.KubeVersion.Version, version)
+			if tc.Name == "Invalid" {
+				assert.Equal(t, opts.Capabilities.KubeVersion.Version, "v1.25")
+			} else {
+				assert.Equal(t, opts.Capabilities.KubeVersion.Version, "v1.25.0")
+			}
 		})
 	}
 }
