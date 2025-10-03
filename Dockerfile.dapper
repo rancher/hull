@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/golang:1.24
+FROM registry.suse.com/bci/golang:1.24.3
 
 ARG DAPPER_HOST_ARCH
 ENV ARCH $DAPPER_HOST_ARCH
@@ -30,7 +30,7 @@ RUN pip install "yamllint==$yamllint_version"
 # note: this tool has been added to allow users to declare that the output of the tests should
 # be converted from human-readable Go test output to a machine-parseable JUnit XML report
 
-ARG gotestsum_version=v1.8.2
+ARG gotestsum_version=v1.13.0
 LABEL gotestsum_version=${gotestsum_version}
 RUN go install gotest.tools/gotestsum@${gotestsum_version}
 
