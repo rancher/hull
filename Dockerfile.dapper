@@ -22,7 +22,7 @@ RUN curl -sL https://get.helm.sh/helm-${helm_version}-linux-${ARCH}.tar.gz | tar
 RUN zypper --non-interactive install tar python3 python3-pip
 
 # Install a YAML Linter
-ARG yamllint_version=1.26.3
+ARG yamllint_version=1.28.0
 LABEL yamllint_version=$yamllint_version
 RUN pip install "yamllint==$yamllint_version"
 
