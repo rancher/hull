@@ -57,6 +57,13 @@
             "revive"
           ],
           "text": "should be of the form"
+        },
+        {
+          "linters": [
+            "revive"
+          ],
+          "text": "var-naming",
+          "exclude": true
         }
       ]
     }

@@ -146,7 +146,7 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 
 	// Grab all subchart paths
 	paths := []string{t.Chart.Path}
-	filepath.Walk(filepath.Join(t.Chart.Path, "charts"), func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(filepath.Join(t.Chart.Path, "charts"), func(path string, info os.FileInfo, _ error) error {
 		if info != nil && info.Name() == "Chart.yaml" {
 			paths = append(paths, filepath.Dir(path))
 		}

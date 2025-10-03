@@ -55,7 +55,7 @@ func WrapFunc(fromFunc interface{}, opts *ParseOptions) DoFunc {
 }
 
 func getBadSignatureFunc(fromFunc interface{}, err error) DoFunc {
-	return func(t *testing.T, objs []runtime.Object) {
+	return func(t *testing.T, _ []runtime.Object) {
 		t.Errorf("invalid function signature for %s: function signature must match pattern "+
 			"func(t *testing.T, objStruct MyStruct), where each field of a provided "+
 			"struct must correspond to a slice of pointers to structs that implement "+
