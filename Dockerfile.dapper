@@ -10,7 +10,7 @@ RUN if [ "${ARCH}" == "amd64" ]; then \
     fi
 
 # # Install Helm
-ARG helm_version=v3.14.1
+ARG helm_version=v3.19.0
 LABEL helm_version=${helm_version}
 RUN curl -sL https://get.helm.sh/helm-${helm_version}-linux-${ARCH}.tar.gz | tar xvzf - -C /usr/local/bin --strip-components=1
 
