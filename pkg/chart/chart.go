@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/rancher/hull/pkg/parser"
-	"github.com/rancher/wrangler/pkg/objectset"
+	"github.com/rancher/wrangler/v3/pkg/objectset"
 	helmChart "helm.sh/helm/v3/pkg/chart"
 	helmLoader "helm.sh/helm/v3/pkg/chart/loader"
 	helmChartUtil "helm.sh/helm/v3/pkg/chartutil"
