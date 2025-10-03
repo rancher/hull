@@ -172,7 +172,7 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 			continue
 		case helmLintSupport.ErrorSev:
 			err := errMap[msg.Path]
-			errMap[msg.Path] = multierr.Append(err, fmt.Errorf(msg.Error()))
+			errMap[msg.Path] = multierr.Append(err, fmt.Errorf("%s", msg.Error()))
 		}
 	}
 	if len(errMap) == 0 {
