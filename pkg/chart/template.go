@@ -13,7 +13,7 @@ import (
 	multierr "github.com/hashicorp/go-multierror"
 	"github.com/rancher/hull/pkg/checker"
 	"github.com/rancher/hull/pkg/writer"
-	"github.com/rancher/wrangler/pkg/objectset"
+	"github.com/rancher/wrangler/v3/pkg/objectset"
 	helmAction "helm.sh/helm/v3/pkg/action"
 	helmLintSupport "helm.sh/helm/v3/pkg/lint/support"
 )

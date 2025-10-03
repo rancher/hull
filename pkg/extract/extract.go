@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rancher/wrangler/pkg/data/convert"
+	"github.com/rancher/wrangler/v3/pkg/data/convert"
 )
 
 var renderValuesCmdRe = regexp.MustCompile(`(?P<field>[^\[\]]*)+(?P<indices>\[.*\])*`)

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	multierr "github.com/hashicorp/go-multierror"
-	"github.com/rancher/wrangler/pkg/objectset"
+	"github.com/rancher/wrangler/v3/pkg/objectset"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"

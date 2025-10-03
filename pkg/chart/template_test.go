@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/rancher/hull/pkg/utils"
-	"github.com/rancher/wrangler/pkg/objectset"
+	"github.com/rancher/wrangler/v3/pkg/objectset"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )

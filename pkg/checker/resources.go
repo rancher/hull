@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	multierr "github.com/hashicorp/go-multierror"
-	"github.com/rancher/wrangler/pkg/relatedresource"
+	"github.com/rancher/wrangler/v3/pkg/relatedresource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
