@@ -1,42 +1,68 @@
 {
-    "linters": {
-        "disable-all": true,
-        "enable": [
-           "govet",
-           "revive",
-           "goimports",
-           "misspell",
-           "ineffassign",
-           "gofmt"
-        ]
+  "formatters": {
+    "enable": [
+      "gofmt",
+      "goimports"
+    ],
+    "exclusions": {
+      "generated": "lax",
+      "paths": [
+        "third_party$",
+        "builtin$",
+        "examples$"
+      ]
     },
-    "linters-settings": {
-        "govet": {
-            "check-shadowing": false
-        },
-        "gofmt": {
-            "simplify": false
-        }
-    },
-    "run": {
-        "skip-dirs": [],
-        "tests": false,
-        "timeout": "10m"
-    },
-    "issues": {
-        "exclude-rules": [
-            {
-                "linters": "govet",
-                "text": "^(nilness|structtag)"
-            },
-            {
-                "linters": "revive",
-                "text": "should have comment"
-            },
-            {
-                "linters": "revive",
-                "text": "should be of the form"
-            }
-        ]
+    "settings": {
+      "gofmt": {
+        "simplify": false
+      }
     }
+  },
+  "linters": {
+    "default": "none",
+    "enable": [
+      "govet",
+      "ineffassign",
+      "misspell",
+      "revive"
+    ],
+    "exclusions": {
+      "generated": "lax",
+      "paths": [
+        "third_party$",
+        "builtin$",
+        "examples$"
+      ],
+      "presets": [
+        "comments",
+        "common-false-positives",
+        "legacy",
+        "std-error-handling"
+      ],
+      "rules": [
+        {
+          "linters": [
+            "govet"
+          ],
+          "text": "^(nilness|structtag)"
+        },
+        {
+          "linters": [
+            "revive"
+          ],
+          "text": "should have comment"
+        },
+        {
+          "linters": [
+            "revive"
+          ],
+          "text": "should be of the form"
+        }
+      ]
+    }
+  },
+  "run": {
+    "tests": false
+  },
+  "version": "2"
 }
