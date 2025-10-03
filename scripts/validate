@@ -9,7 +9,7 @@ for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
     echo "Running go generate for MODULE='${module}'..."
     echo ""
     pushd ${module} 2>/dev/null 1>/dev/null
-    go generate
+    go generate ./...
     popd 2>/dev/null 1>/dev/null
     source ./scripts/version
     if [ -n "$DIRTY" ]; then
@@ -29,7 +29,7 @@ for module in $(find . -name 'go.mod' | sed 's/\/go.mod//'); do
     echo "Running golangci-lint for MODULE='${module}'..."
     echo ""
     pushd ${module} 2>/dev/null 1>/dev/null
-    golangci-lint run
+    golangci-lint run ./..
     popd 2>/dev/null 1>/dev/null
     echo ""
 done
