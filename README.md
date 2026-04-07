@@ -3,6 +3,8 @@ hull
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+> **DEPRECATED** — Hull is no longer actively maintained. Please migrate to the industry-standard toolchain of [helm-unittest](https://github.com/helm-unittest/helm-unittest), [chart-testing](https://github.com/helm/chart-testing), and [kubeconform](https://github.com/yannh/kubeconform). See the **[migration guide](docs/migrating-away-from-hull.md)** for a full walkthrough.
+
 Hull is a **Go testing framework** for writing comprehensive tests on [Helm](https://github.com/helm/helm) charts.
 
 Once you have defined your suite of tests targeting a specific chart (or multiple charts) using Hull, **you can simply run your suite(s) of tests by running `go test`**.
