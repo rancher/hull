@@ -133,6 +133,8 @@ type HelmLintOptions struct {
 
 type RancherHelmLintOptions struct {
 	Enabled bool
+
+	IgnoreAnnotations []string
 }
 
 func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
@@ -156,11 +158,9 @@ func (t *template) HelmLint(tT *testing.T, opts *HelmLintOptions) {
 	lintResult := lint.Run(paths, t.Values)
 
 	// Add additional custom lints
-	if opts.Rancher.Enabled {
-		if err := t.validateRancherAnnotations(); err != nil {
-			msg := helmLintSupport.NewMessage(helmLintSupport.ErrorSev, "Chart.yaml", err)
-			lintResult.Messages = append(lintResult.Messages, msg)
-		}
+	if err := t.validateRancherAnnotations(opts.Rancher); err != nil {
+		msg := helmLintSupport.NewMessage(helmLintSupport.ErrorSev, "Chart.yaml", err)
+		lintResult.Messages = append(lintResult.Messages, msg)
 	}
 
 	// log errors
